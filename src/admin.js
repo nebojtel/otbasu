@@ -840,3 +840,340 @@ function bindEvents() {
 
 bindEvents();
 requireSession();
+/* OTBASU ADMIN POLISH — SAFE VISUAL FIX
+   Только внешний вид админки.
+   Логику товаров, Supabase, витрину и галерею не трогаем.
+*/
+(() => {
+  if (window.__OTBASU_ADMIN_POLISH_SAFE__) return;
+  window.__OTBASU_ADMIN_POLISH_SAFE__ = true;
+
+  const STYLE_ID = 'otbasu-admin-polish-safe-style';
+
+  function injectAdminPolishStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+
+    style.textContent = `
+      :root {
+        --otbasu-admin-wine: #7b124f;
+        --otbasu-admin-wine-dark: #4d0a33;
+        --otbasu-admin-cream: #fff8ef;
+        --otbasu-admin-card: rgba(255, 255, 255, .88);
+        --otbasu-admin-border: rgba(123, 18, 79, .13);
+        --otbasu-admin-shadow: 0 18px 48px rgba(50, 8, 34, .12);
+      }
+
+      body {
+        background:
+          radial-gradient(circle at 18% 0%, rgba(255, 224, 186, .55), transparent 32%),
+          radial-gradient(circle at 88% 12%, rgba(123, 18, 79, .13), transparent 34%),
+          linear-gradient(180deg, #fff8ef 0%, #fff4e7 100%) !important;
+      }
+
+      .admin-shell,
+      main,
+      .content,
+      .main-content {
+        min-height: 100vh;
+      }
+
+      .page.active {
+        animation: otbasuAdminPageIn 240ms ease both;
+      }
+
+      @keyframes otbasuAdminPageIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .status-bar {
+        border-radius: 18px !important;
+        border: 1px solid var(--otbasu-admin-border) !important;
+        box-shadow: 0 10px 28px rgba(50, 8, 34, .08) !important;
+      }
+
+      .status-bar.ok {
+        background: rgba(230, 255, 237, .9) !important;
+      }
+
+      .status-bar.error {
+        background: rgba(255, 231, 231, .92) !important;
+      }
+
+      .card,
+      .panel,
+      .metric-card,
+      .dashboard-card,
+      .table-card,
+      .settings-card,
+      .analytics-card {
+        border-radius: 26px !important;
+        border: 1px solid var(--otbasu-admin-border) !important;
+        background: var(--otbasu-admin-card) !important;
+        box-shadow: var(--otbasu-admin-shadow) !important;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+      }
+
+      #productsPage table,
+      #analyticsPage table,
+      #usersPage table {
+        width: 100% !important;
+        border-collapse: separate !important;
+        border-spacing: 0 10px !important;
+      }
+
+      #productsPage thead th,
+      #analyticsPage thead th,
+      #usersPage thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: rgba(255, 248, 239, .96) !important;
+        color: rgba(77, 10, 51, .72) !important;
+        font-size: 12px !important;
+        font-weight: 900 !important;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        padding: 12px 14px !important;
+        border-bottom: 1px solid rgba(123, 18, 79, .1) !important;
+      }
+
+      #productsTableBody tr,
+      #analyticsTableBody tr,
+      #usersTableBody tr {
+        background: rgba(255, 255, 255, .9) !important;
+        box-shadow: 0 10px 26px rgba(48, 7, 32, .08) !important;
+        transition:
+          transform 160ms ease,
+          box-shadow 160ms ease,
+          background 160ms ease !important;
+      }
+
+      #productsTableBody tr:hover,
+      #analyticsTableBody tr:hover,
+      #usersTableBody tr:hover {
+        transform: translateY(-1px);
+        background: #fff !important;
+        box-shadow: 0 16px 34px rgba(48, 7, 32, .13) !important;
+      }
+
+      #productsTableBody td,
+      #analyticsTableBody td,
+      #usersTableBody td {
+        padding: 12px 14px !important;
+        vertical-align: middle !important;
+        border-top: 1px solid rgba(123, 18, 79, .08) !important;
+        border-bottom: 1px solid rgba(123, 18, 79, .08) !important;
+      }
+
+      #productsTableBody td:first-child,
+      #analyticsTableBody td:first-child,
+      #usersTableBody td:first-child {
+        border-left: 1px solid rgba(123, 18, 79, .08) !important;
+        border-radius: 18px 0 0 18px !important;
+      }
+
+      #productsTableBody td:last-child,
+      #analyticsTableBody td:last-child,
+      #usersTableBody td:last-child {
+        border-right: 1px solid rgba(123, 18, 79, .08) !important;
+        border-radius: 0 18px 18px 0 !important;
+      }
+
+      #productsTableBody img,
+      #analyticsTableBody img {
+        width: 72px !important;
+        height: 72px !important;
+        min-width: 72px !important;
+        max-width: 72px !important;
+        max-height: 72px !important;
+        object-fit: cover !important;
+        border-radius: 18px !important;
+        display: block !important;
+        box-shadow: 0 10px 24px rgba(50, 8, 34, .16) !important;
+        border: 1px solid rgba(123, 18, 79, .12) !important;
+        background: #fff8ef !important;
+      }
+
+      #productsTableBody button,
+      #analyticsPage button,
+      #usersPage button,
+      #categoriesPage button,
+      #settingsPage button,
+      #dashboardPage button,
+      #productDialog button {
+        border-radius: 999px !important;
+        font-weight: 900 !important;
+        transition:
+          transform 140ms ease,
+          box-shadow 140ms ease,
+          opacity 140ms ease !important;
+      }
+
+      #productsTableBody button:hover,
+      #analyticsPage button:hover,
+      #usersPage button:hover,
+      #categoriesPage button:hover,
+      #settingsPage button:hover,
+      #dashboardPage button:hover,
+      #productDialog button:hover {
+        transform: translateY(-1px);
+      }
+
+      [data-edit-product] {
+        background: linear-gradient(135deg, #8d155d, #5b0d3c) !important;
+        color: #fff8ef !important;
+        border: 0 !important;
+        box-shadow: 0 12px 26px rgba(123, 18, 79, .22) !important;
+      }
+
+      #productsTableBody tr[draggable="true"] {
+        cursor: grab;
+      }
+
+      #productsTableBody tr.dragging {
+        opacity: .58;
+        transform: scale(.99);
+      }
+
+      #productsPage input,
+      #productsPage select,
+      #settingsPage input,
+      #settingsPage textarea,
+      #settingsPage select,
+      #usersPage input,
+      #usersPage select,
+      #categoriesPage input,
+      #productDialog input,
+      #productDialog textarea,
+      #productDialog select {
+        border-radius: 16px !important;
+        border: 1px solid rgba(123, 18, 79, .15) !important;
+        background: rgba(255, 255, 255, .88) !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7) !important;
+      }
+
+      #productsPage input:focus,
+      #productsPage select:focus,
+      #settingsPage input:focus,
+      #settingsPage textarea:focus,
+      #settingsPage select:focus,
+      #usersPage input:focus,
+      #usersPage select:focus,
+      #categoriesPage input:focus,
+      #productDialog input:focus,
+      #productDialog textarea:focus,
+      #productDialog select:focus {
+        outline: none !important;
+        border-color: rgba(123, 18, 79, .45) !important;
+        box-shadow:
+          0 0 0 4px rgba(123, 18, 79, .09),
+          inset 0 1px 0 rgba(255, 255, 255, .7) !important;
+      }
+
+      #productDialog {
+        width: min(960px, calc(100vw - 28px)) !important;
+        max-height: calc(100vh - 28px) !important;
+        border: 0 !important;
+        border-radius: 30px !important;
+        padding: 0 !important;
+        background: rgba(255, 248, 239, .97) !important;
+        box-shadow: 0 28px 90px rgba(29, 3, 19, .38) !important;
+        overflow: hidden !important;
+      }
+
+      #productDialog::backdrop {
+        background:
+          radial-gradient(circle at 50% 0%, rgba(255, 224, 186, .24), transparent 34%),
+          rgba(21, 3, 15, .72) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+
+      #productDialog form {
+        max-height: calc(100vh - 28px) !important;
+        overflow: auto !important;
+        padding: 24px !important;
+      }
+
+      #imagePreview {
+        min-height: 180px !important;
+        border-radius: 24px !important;
+        border: 1px dashed rgba(123, 18, 79, .28) !important;
+        background:
+          radial-gradient(circle at 50% 0%, rgba(255, 224, 186, .5), transparent 48%),
+          rgba(255, 255, 255, .72) !important;
+        display: grid !important;
+        place-items: center !important;
+        overflow: hidden !important;
+        color: rgba(77, 10, 51, .45) !important;
+        font-weight: 900 !important;
+      }
+
+      #imagePreview img {
+        width: 100% !important;
+        height: 220px !important;
+        object-fit: cover !important;
+        display: block !important;
+      }
+
+      #imageGalleryList {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)) !important;
+        gap: 12px !important;
+        margin-top: 12px !important;
+      }
+
+      #imageGalleryList > * {
+        border-radius: 20px !important;
+        background: rgba(255, 255, 255, .86) !important;
+        border: 1px solid rgba(123, 18, 79, .12) !important;
+        box-shadow: 0 12px 28px rgba(50, 8, 34, .1) !important;
+        overflow: hidden !important;
+      }
+
+      #imageGalleryList img {
+        width: 100% !important;
+        height: 104px !important;
+        object-fit: cover !important;
+        display: block !important;
+      }
+
+      #imageGalleryList button {
+        min-width: 34px !important;
+        min-height: 34px !important;
+      }
+
+      @media (max-width: 900px) {
+        #productsPage {
+          overflow-x: auto;
+        }
+
+        #productsPage table {
+          min-width: 820px !important;
+        }
+
+        #productDialog form {
+          padding: 18px !important;
+        }
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  injectAdminPolishStyles();
+
+  document.addEventListener('DOMContentLoaded', injectAdminPolishStyles);
+  window.setTimeout(injectAdminPolishStyles, 500);
+})();
