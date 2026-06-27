@@ -368,3 +368,742 @@ function bindEvents() {
 
 bindEvents();
 loadState();
+/* OTBASU MOBILE PHOTO VIEWER — FINAL EDGE FIX VERSION
+   Влево/вправо — листать фото.
+   Вверх/вниз — закрыть просмотр.
+   Первый/последний кадр мягко упираются и не закрывают просмотр.
+   CSS встроен сюда, vitrine/styles.css не трогаем.
+*/
+(() => {
+  if (window.__OTBASU_MOBILE_PHOTO_VIEWER_FINAL_EDGE__) return;
+  window.__OTBASU_MOBILE_PHOTO_VIEWER_FINAL_EDGE__ = true;
+
+  const STYLE_ID = 'otbasu-mobile-photo-viewer-final-edge-style';
+  const VIEWER_ID = 'otbasuMobilePhotoViewer';
+
+  function htmlEscape(value = '') {
+    return String(value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function uniqImages(list = []) {
+    const seen = new Set();
+
+    return list
+      .flatMap((item) => {
+        if (!item) return [];
+
+        if (Array.isArray(item)) return item;
+
+        if (typeof item === 'string') {
+          const trimmed = item.trim();
+
+          if (!trimmed) return [];
+
+          try {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) return parsed;
+          } catch (_) {}
+
+          return [trimmed];
+        }
+
+        return [];
+      })
+      .map((src) => String(src || '').trim())
+      .filter(Boolean)
+      .filter((src) => {
+        if (seen.has(src)) return false;
+        seen.add(src);
+        return true;
+      });
+  }
+
+  function getProductsSafely() {
+    try {
+      if (typeof activeProducts === 'function') {
+        return activeProducts();
+      }
+    } catch (_) {}
+
+    try {
+      if (typeof state !== 'undefined' && Array.isArray(state.products)) {
+        return state.products;
+      }
+    } catch (_) {}
+
+    return [];
+  }
+
+  function getProductFromClick(opener) {
+    const card = opener.closest?.('[data-product-id], .product');
+    const productId =
+      opener.dataset?.galleryOpen ||
+      opener.dataset?.productId ||
+      card?.dataset?.productId ||
+      '';
+
+    const products = getProductsSafely();
+    const product = products.find((item) => String(item.id) === String(productId));
+
+    if (product) return product;
+
+    const img = opener.querySelector?.('img') || opener.closest?.('.product')?.querySelector?.('img') || null;
+    const title =
+      card?.querySelector?.('h3')?.textContent?.trim() ||
+      img?.alt ||
+      'Товар';
+
+    return {
+      id: productId || `product-${Date.now()}`,
+      title,
+      imageUrl: img?.currentSrc || img?.src || '',
+      images: [img?.currentSrc || img?.src || '']
+    };
+  }
+
+  function getImagesFromProduct(product, opener) {
+    const openerImg = opener.querySelector?.('img') || opener.closest?.('.product')?.querySelector?.('img') || null;
+
+    const images = uniqImages([
+      product?.imageUrl,
+      product?.image_url,
+      product?.mainImage,
+      product?.main_image,
+      product?.photo,
+      product?.image,
+      product?.images,
+      openerImg?.currentSrc,
+      openerImg?.src
+    ]);
+
+    return images.length ? images : [openerImg?.currentSrc || openerImg?.src || ''].filter(Boolean);
+  }
+
+  function injectStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = `
+      .otbasu-photo-count-badge {
+        position: absolute;
+        right: 10px;
+        bottom: 10px;
+        z-index: 5;
+        padding: 6px 9px;
+        border-radius: 999px;
+        background: rgba(66, 12, 46, .74);
+        color: #fff7e8;
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 10px 24px rgba(30, 4, 21, .24);
+        pointer-events: none;
+      }
+
+      .product-media {
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .otbasu-photo-viewer {
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        display: block;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        background: rgba(20, 3, 15, 0);
+        overflow: hidden;
+        transition:
+          opacity 180ms ease,
+          visibility 180ms ease,
+          background 180ms ease;
+        -webkit-tap-highlight-color: transparent;
+        contain: layout paint size;
+      }
+
+      .otbasu-photo-viewer.is-open {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        background: rgba(20, 3, 15, .94);
+      }
+
+      .otbasu-photo-backdrop {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 50% 8%, rgba(255, 232, 198, .14), transparent 34%),
+          linear-gradient(180deg, rgba(58, 9, 42, .82), rgba(13, 1, 10, .98));
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+      }
+
+      .otbasu-photo-track {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        scrollbar-width: none;
+        overscroll-behavior: contain;
+        overscroll-behavior-x: contain;
+        overscroll-behavior-y: none;
+        touch-action: pan-x;
+        transform: translate3d(0, 24px, 0) scale(.96);
+        opacity: 0;
+        transition:
+          transform 280ms cubic-bezier(.16, 1, .3, 1),
+          opacity 220ms ease;
+        will-change: transform, opacity;
+      }
+
+      .otbasu-photo-viewer.is-open .otbasu-photo-track {
+        transform: translate3d(0, 0, 0) scale(1);
+        opacity: 1;
+      }
+
+      .otbasu-photo-track::-webkit-scrollbar {
+        display: none;
+      }
+
+      .otbasu-photo-slide {
+        flex: 0 0 100vw;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        margin: 0;
+        padding:
+          max(66px, calc(env(safe-area-inset-top) + 56px))
+          0
+          max(76px, calc(env(safe-area-inset-bottom) + 58px));
+        display: grid;
+        place-items: center;
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      .otbasu-photo-slide img {
+        width: 100%;
+        height: 100%;
+        max-width: 100vw;
+        max-height: 100%;
+        object-fit: contain;
+        display: block;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        transform: translate3d(0, 0, 0);
+        backface-visibility: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-user-drag: none;
+        touch-action: pan-x;
+      }
+
+      .otbasu-photo-close {
+        position: fixed;
+        top: max(14px, env(safe-area-inset-top));
+        right: 14px;
+        z-index: 6;
+        width: 46px;
+        height: 46px;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(255, 250, 244, .92);
+        box-shadow: 0 14px 40px rgba(12, 2, 9, .34);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        cursor: pointer;
+      }
+
+      .otbasu-photo-close::before,
+      .otbasu-photo-close::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 19px;
+        height: 3px;
+        border-radius: 999px;
+        background: #79124f;
+        transform-origin: center;
+      }
+
+      .otbasu-photo-close::before {
+        transform: translate(-50%, -50%) rotate(45deg);
+      }
+
+      .otbasu-photo-close::after {
+        transform: translate(-50%, -50%) rotate(-45deg);
+      }
+
+      .otbasu-photo-bars {
+        position: fixed;
+        left: 50%;
+        bottom: max(22px, env(safe-area-inset-bottom));
+        z-index: 6;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 10px 12px;
+        max-width: calc(100vw - 28px);
+        border-radius: 999px;
+        background: rgba(255, 248, 238, .11);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 12px 32px rgba(12, 2, 9, .2);
+      }
+
+      .otbasu-photo-bar {
+        width: 24px;
+        height: 4px;
+        border: 0;
+        border-radius: 999px;
+        padding: 0;
+        background: rgba(255, 239, 229, .34);
+        transition:
+          width 180ms ease,
+          background 180ms ease,
+          transform 180ms ease;
+        cursor: pointer;
+      }
+
+      .otbasu-photo-bar.is-active {
+        width: 36px;
+        background: #8d155d;
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, .16) inset;
+      }
+
+      .otbasu-photo-hint {
+        position: fixed;
+        left: 50%;
+        top: max(18px, env(safe-area-inset-top));
+        z-index: 5;
+        transform: translateX(-50%);
+        padding: 8px 12px;
+        border-radius: 999px;
+        color: rgba(255, 247, 229, .76);
+        background: rgba(255, 248, 238, .1);
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        pointer-events: none;
+        opacity: .82;
+        transition: opacity 240ms ease;
+      }
+
+      .otbasu-photo-viewer.is-used .otbasu-photo-hint {
+        opacity: 0;
+      }
+
+      body.otbasu-photo-open {
+        overflow: hidden !important;
+        overscroll-behavior: none !important;
+      }
+
+      @media (min-width: 761px) and (hover: hover) {
+        .otbasu-photo-slide {
+          padding: 74px 32px 86px;
+        }
+
+        .otbasu-photo-slide img {
+          max-width: min(980px, 92vw);
+        }
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  function addPhotoBadges() {
+    document.querySelectorAll('.product').forEach((card) => {
+      const media = card.querySelector('.product-media, [data-gallery-open]');
+      if (!media || media.querySelector('.otbasu-photo-count-badge')) return;
+
+      const productId = media.dataset.galleryOpen || card.dataset.productId || '';
+      const product = getProductsSafely().find((item) => String(item.id) === String(productId));
+      const images = getImagesFromProduct(product || {}, media);
+
+      if (images.length < 2) return;
+
+      const badge = document.createElement('span');
+      badge.className = 'otbasu-photo-count-badge';
+      badge.textContent = `${images.length} фото`;
+      media.appendChild(badge);
+    });
+  }
+
+  function openViewer(product, images, opener) {
+    injectStyles();
+
+    const safeImages = uniqImages(images);
+    if (!safeImages.length) return;
+
+    document.getElementById(VIEWER_ID)?.remove();
+
+    const oldModal = document.getElementById('galleryModal');
+    if (oldModal) oldModal.setAttribute('aria-hidden', 'true');
+
+    const title = product?.title || opener?.closest?.('.product')?.querySelector?.('h3')?.textContent?.trim() || 'Товар';
+
+    const viewer = document.createElement('section');
+    viewer.id = VIEWER_ID;
+    viewer.className = 'otbasu-photo-viewer';
+    viewer.setAttribute('role', 'dialog');
+    viewer.setAttribute('aria-modal', 'true');
+    viewer.setAttribute('aria-label', `Фото товара ${title}`);
+
+    viewer.innerHTML = `
+      <div class="otbasu-photo-backdrop" data-otbasu-photo-close></div>
+      <button class="otbasu-photo-close" type="button" data-otbasu-photo-close aria-label="Закрыть просмотр фото"></button>
+      <div class="otbasu-photo-hint">Листай влево/вправо · вверх/вниз закрыть</div>
+
+      <div class="otbasu-photo-track" data-otbasu-photo-track>
+        ${safeImages.map((src, index) => `
+          <figure class="otbasu-photo-slide" data-otbasu-photo-slide="${index}">
+            <img src="${htmlEscape(src)}" alt="${htmlEscape(title)} — фото ${index + 1}" draggable="false" decoding="async">
+          </figure>
+        `).join('')}
+      </div>
+
+      <div class="otbasu-photo-bars" aria-label="Фотографии товара">
+        ${safeImages.map((_, index) => `
+          <button
+            class="otbasu-photo-bar${index === 0 ? ' is-active' : ''}"
+            type="button"
+            data-otbasu-photo-dot="${index}"
+            aria-label="Фото ${index + 1} из ${safeImages.length}">
+          </button>
+        `).join('')}
+      </div>
+    `;
+
+    document.body.appendChild(viewer);
+    document.body.classList.add('otbasu-photo-open');
+
+    const track = viewer.querySelector('[data-otbasu-photo-track]');
+    const bars = Array.from(viewer.querySelectorAll('[data-otbasu-photo-dot]'));
+
+    let activeIndex = 0;
+    let startX = 0;
+    let startY = 0;
+    let lastX = 0;
+    let lastY = 0;
+    let startTime = 0;
+    let mode = null;
+    let touching = false;
+    let raf = 0;
+    let ignoreClickUntil = 0;
+
+    const updateBars = () => {
+      const nextIndex = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+      activeIndex = Math.max(0, Math.min(safeImages.length - 1, nextIndex));
+
+      bars.forEach((bar, index) => {
+        bar.classList.toggle('is-active', index === activeIndex);
+        bar.setAttribute('aria-current', index === activeIndex ? 'true' : 'false');
+      });
+    };
+
+    const requestUpdateBars = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(updateBars);
+    };
+
+    const scrollToIndex = (index, behavior = 'smooth') => {
+      const next = Math.max(0, Math.min(safeImages.length - 1, index));
+      viewer.classList.add('is-used');
+      track.scrollTo({ left: next * track.clientWidth, behavior });
+      window.setTimeout(updateBars, behavior === 'smooth' ? 220 : 0);
+    };
+
+    const closeViewer = (directionY = 1) => {
+      if (!viewer.isConnected) return;
+
+      viewer.classList.add('is-used');
+      viewer.style.transition = 'opacity 190ms ease, background 190ms ease';
+      viewer.style.opacity = '0';
+
+      track.style.transition = 'transform 210ms cubic-bezier(.2,.9,.2,1), opacity 170ms ease';
+      track.style.transform = `translate3d(0, ${directionY * 44}px, 0) scale(.96)`;
+      track.style.opacity = '0';
+
+      window.setTimeout(() => {
+        viewer.remove();
+        document.body.classList.remove('otbasu-photo-open');
+      }, 190);
+    };
+
+    const resetTrack = () => {
+      viewer.style.transition = 'opacity 180ms ease';
+      viewer.style.opacity = '1';
+
+      track.style.transition = 'transform 220ms cubic-bezier(.16,1,.3,1), opacity 180ms ease';
+      track.style.transform = 'translate3d(0, 0, 0) scale(1)';
+      track.style.opacity = '1';
+
+      window.setTimeout(() => {
+        viewer.style.transition = '';
+        viewer.style.opacity = '';
+        track.style.transition = '';
+        track.style.transform = '';
+        track.style.opacity = '';
+      }, 240);
+    };
+
+    const getTouch = (event) => {
+      if (event.touches?.[0]) return event.touches[0];
+      if (event.changedTouches?.[0]) return event.changedTouches[0];
+      return event;
+    };
+
+    const isAtFirstPhoto = () => track.scrollLeft <= 4;
+    const isAtLastPhoto = () => {
+      const maxScrollLeft = Math.max(0, track.scrollWidth - track.clientWidth);
+      return track.scrollLeft >= maxScrollLeft - 4;
+    };
+
+    const startTouch = (event) => {
+      if (event.target.closest('button')) return;
+
+      const point = getTouch(event);
+
+      touching = true;
+      mode = null;
+      startX = point.clientX;
+      startY = point.clientY;
+      lastX = point.clientX;
+      lastY = point.clientY;
+      startTime = Date.now();
+
+      track.style.transition = 'none';
+    };
+
+    const moveTouch = (event) => {
+      if (!touching) return;
+
+      const point = getTouch(event);
+
+      lastX = point.clientX;
+      lastY = point.clientY;
+
+      const dx = lastX - startX;
+      const dy = lastY - startY;
+      const ax = Math.abs(dx);
+      const ay = Math.abs(dy);
+
+      const pullingRightFromFirst = dx > 0 && isAtFirstPhoto();
+      const pullingLeftFromLast = dx < 0 && isAtLastPhoto();
+      const pullingEdge = pullingRightFromFirst || pullingLeftFromLast;
+
+      if (!mode && Math.max(ax, ay) > 8) {
+        if (pullingEdge && ax > ay * 0.55) {
+          mode = 'edge-horizontal';
+        } else {
+          mode = ay > ax * 1.08 ? 'vertical' : 'horizontal';
+        }
+      }
+
+      if (mode === 'edge-horizontal') {
+        viewer.classList.add('is-used');
+
+        if (event.cancelable) event.preventDefault();
+
+        const rubber = Math.max(-34, Math.min(34, dx * 0.16));
+
+        track.style.transition = 'none';
+        track.style.transform = `translate3d(${rubber}px, 0, 0) scale(1)`;
+        track.style.opacity = '1';
+        viewer.style.opacity = '1';
+
+        return;
+      }
+
+      if (mode === 'horizontal') {
+        viewer.classList.add('is-used');
+        return;
+      }
+
+      if (mode !== 'vertical') return;
+
+      viewer.classList.add('is-used');
+
+      if (event.cancelable) event.preventDefault();
+
+      const limitedY = Math.max(-210, Math.min(210, dy));
+      const progress = Math.min(Math.abs(limitedY) / 210, 1);
+      const scale = 1 - progress * 0.075;
+
+      track.style.transform = `translate3d(0, ${limitedY}px, 0) scale(${scale})`;
+      track.style.opacity = String(1 - progress * 0.5);
+      viewer.style.opacity = String(1 - progress * 0.18);
+    };
+
+    const endTouch = (event) => {
+      if (!touching) return;
+
+      const point = getTouch(event);
+
+      if (point) {
+        lastX = point.clientX;
+        lastY = point.clientY;
+      }
+
+      const dx = lastX - startX;
+      const dy = lastY - startY;
+      const ax = Math.abs(dx);
+      const ay = Math.abs(dy);
+      const time = Date.now() - startTime;
+
+      touching = false;
+
+      if (mode === 'edge-horizontal') {
+        ignoreClickUntil = Date.now() + 260;
+        resetTrack();
+
+        if ('vibrate' in navigator) {
+          navigator.vibrate(5);
+        }
+
+        requestUpdateBars();
+        return;
+      }
+
+      const fastVertical = mode === 'vertical' && ay > 42 && time < 240 && ay > ax * 1.15;
+      const strongVertical = mode === 'vertical' && ay > 78 && ay > ax * 1.08;
+
+      if (fastVertical || strongVertical) {
+        ignoreClickUntil = Date.now() + 350;
+        closeViewer(dy < 0 ? -1 : 1);
+        return;
+      }
+
+      if (mode === 'vertical') {
+        ignoreClickUntil = Date.now() + 280;
+        resetTrack();
+        return;
+      }
+
+      requestUpdateBars();
+    };
+
+    viewer.querySelectorAll('[data-otbasu-photo-close]').forEach((node) => {
+      node.addEventListener('click', (event) => {
+        if (Date.now() < ignoreClickUntil) return;
+        event.preventDefault();
+        closeViewer(1);
+      });
+    });
+
+    bars.forEach((bar) => {
+      bar.addEventListener('click', () => {
+        scrollToIndex(Number(bar.dataset.otbasuPhotoDot) || 0);
+      });
+    });
+
+    track.addEventListener('scroll', requestUpdateBars, { passive: true });
+    track.addEventListener('touchstart', startTouch, { passive: true });
+    track.addEventListener('touchmove', moveTouch, { passive: false });
+    track.addEventListener('touchend', endTouch, { passive: true });
+    track.addEventListener('touchcancel', resetTrack, { passive: true });
+
+    const keyHandler = (event) => {
+      if (!viewer.isConnected) {
+        window.removeEventListener('keydown', keyHandler);
+        return;
+      }
+
+      if (event.key === 'Escape') closeViewer(1);
+      if (event.key === 'ArrowLeft') scrollToIndex(activeIndex - 1);
+      if (event.key === 'ArrowRight') scrollToIndex(activeIndex + 1);
+    };
+
+    window.addEventListener('keydown', keyHandler);
+
+    requestAnimationFrame(() => {
+      viewer.classList.add('is-open');
+      scrollToIndex(0, 'auto');
+
+      const firstImage = track.querySelector('img');
+
+      if (firstImage) {
+        firstImage.animate(
+          [
+            { transform: 'scale(.94)', opacity: .7 },
+            { transform: 'scale(1)', opacity: 1 }
+          ],
+          {
+            duration: 260,
+            easing: 'cubic-bezier(.16,1,.3,1)'
+          }
+        );
+      }
+    });
+  }
+
+  document.addEventListener(
+    'click',
+    (event) => {
+      const target = event.target;
+
+      if (!target || !target.closest) return;
+      if (target.closest('.actions, a[href], [data-action], .otbasu-photo-viewer')) return;
+
+      const opener =
+        target.closest('[data-gallery-open]') ||
+        target.closest('.product-media') ||
+        target.closest('.product img');
+
+      if (!opener) return;
+
+      const product = getProductFromClick(opener);
+      const images = getImagesFromProduct(product, opener);
+
+      if (!images.length) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+
+      openViewer(product, images, opener);
+
+      try {
+        if (typeof trackEvent === 'function') {
+          trackEvent('gallery_open', { productId: product.id });
+        }
+      } catch (_) {}
+    },
+    true
+  );
+
+  document.addEventListener('DOMContentLoaded', () => {
+    injectStyles();
+    window.setTimeout(addPhotoBadges, 500);
+    window.setTimeout(addPhotoBadges, 1500);
+  });
+
+  injectStyles();
+  window.setTimeout(addPhotoBadges, 700);
+})();
