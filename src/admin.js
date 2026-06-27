@@ -1177,3 +1177,179 @@ requireSession();
   document.addEventListener('DOMContentLoaded', injectAdminPolishStyles);
   window.setTimeout(injectAdminPolishStyles, 500);
 })();
+/* OTBASU ADMIN SORT ARROWS — SAFE
+   Добавляет кнопки ↑ / ↓ в список товаров.
+   Витрину, галерею, Supabase и styles.css не трогаем.
+*/
+(() => {
+  if (window.__OTBASU_ADMIN_SORT_ARROWS_SAFE__) return;
+  window.__OTBASU_ADMIN_SORT_ARROWS_SAFE__ = true;
+
+  const STYLE_ID = 'otbasu-admin-sort-arrows-style';
+
+  function injectSortArrowStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = `
+      .otbasu-sort-controls {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: 8px;
+        vertical-align: middle;
+      }
+
+      .otbasu-sort-btn {
+        width: 34px;
+        height: 34px;
+        border: 0 !important;
+        border-radius: 999px !important;
+        background: rgba(123, 18, 79, .1) !important;
+        color: #7b124f !important;
+        font-size: 17px !important;
+        font-weight: 900 !important;
+        line-height: 1 !important;
+        cursor: pointer;
+        box-shadow: inset 0 0 0 1px rgba(123, 18, 79, .12) !important;
+        transition:
+          transform 140ms ease,
+          background 140ms ease,
+          color 140ms ease,
+          opacity 140ms ease !important;
+      }
+
+      .otbasu-sort-btn:hover {
+        transform: translateY(-1px);
+        background: #7b124f !important;
+        color: #fff8ef !important;
+      }
+
+      .otbasu-sort-btn:disabled {
+        opacity: .32 !important;
+        cursor: not-allowed !important;
+        transform: none !important;
+        background: rgba(123, 18, 79, .08) !important;
+        color: rgba(123, 18, 79, .45) !important;
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  function getFullOrderedProducts() {
+    return [...state.products].sort((a, b) => Number(a.sort || 0) - Number(b.sort || 0));
+  }
+
+  function canUseSortButtons() {
+    const query = String(els.productSearch?.value || '').trim();
+    const filter = els.productFilter?.value || 'all';
+
+    if (query || filter !== 'all') {
+      setStatus('Для сортировки очисти поиск и поставь фильтр “Все”.', 'error');
+      return false;
+    }
+
+    return true;
+  }
+
+  async function moveProductByButton(productId, direction) {
+    if (!canUseSortButtons()) return;
+
+    const ordered = getFullOrderedProducts();
+    const from = ordered.findIndex((product) => String(product.id) === String(productId));
+    const to = from + Number(direction);
+
+    if (from < 0) return;
+
+    if (to < 0) {
+      setStatus('Товар уже самый первый.', 'ok');
+      return;
+    }
+
+    if (to >= ordered.length) {
+      setStatus('Товар уже самый последний.', 'ok');
+      return;
+    }
+
+    const [moved] = ordered.splice(from, 1);
+    ordered.splice(to, 0, moved);
+
+    await persistProductOrder(ordered);
+    window.setTimeout(addSortButtons, 80);
+  }
+
+  function addSortButtons() {
+    injectSortArrowStyles();
+
+    const tbody = els.productsTableBody;
+    if (!tbody) return;
+
+    const rows = [...tbody.querySelectorAll('tr[data-product-id]')];
+
+    rows.forEach((row, index) => {
+      if (row.querySelector('.otbasu-sort-controls')) return;
+
+      const productId = row.dataset.productId;
+      const actionCell = row.querySelector('td:last-child') || row.lastElementChild;
+
+      if (!productId || !actionCell) return;
+
+      const controls = document.createElement('span');
+      controls.className = 'otbasu-sort-controls';
+      controls.innerHTML = `
+        <button
+          class="otbasu-sort-btn"
+          type="button"
+          data-otbasu-sort-product="${productId}"
+          data-otbasu-sort-direction="-1"
+          ${index === 0 ? 'disabled' : ''}
+          title="Поднять товар выше">
+          ↑
+        </button>
+        <button
+          class="otbasu-sort-btn"
+          type="button"
+          data-otbasu-sort-product="${productId}"
+          data-otbasu-sort-direction="1"
+          ${index === rows.length - 1 ? 'disabled' : ''}
+          title="Опустить товар ниже">
+          ↓
+        </button>
+      `;
+
+      actionCell.appendChild(controls);
+    });
+  }
+
+  const originalRenderProducts = renderProducts;
+
+  renderProducts = function patchedRenderProducts(...args) {
+    const result = originalRenderProducts.apply(this, args);
+    window.setTimeout(addSortButtons, 0);
+    return result;
+  };
+
+  els.productsTableBody?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-otbasu-sort-product]');
+    if (!button) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    moveProductByButton(
+      button.dataset.otbasuSortProduct,
+      Number(button.dataset.otbasuSortDirection)
+    );
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    injectSortArrowStyles();
+    window.setTimeout(addSortButtons, 500);
+    window.setTimeout(addSortButtons, 1500);
+  });
+
+  injectSortArrowStyles();
+  window.setTimeout(addSortButtons, 800);
+})();
