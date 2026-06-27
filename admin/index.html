@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fbf0df">
+    <title>ОТБАСЫ | Админка</title>
+  <link rel="stylesheet" href="/admin/admin.css">
+  <script type="module" src="/src/admin.js"></script>
+</head>
+<body>
+  <section class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <img class="login-logo" src="/assets/otbasy-logo-final.png" alt="ОТБАСЫ">
+      <p class="eyebrow">Защищённая админка</p>
+      <h1>ОТБАСЫ</h1>
+      <p class="muted">Вход через Supabase Auth. Доступ только для ролей <b>Администратор</b> и <b>Контент-менеджер</b>.</p>
+      <form class="form-stack" id="loginForm">
+        <label>Email<input name="email" type="email" autocomplete="username" required></label>
+        <label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="primary-button" type="submit">Войти в админку</button>
+      </form>
+    </div>
+  </section>
+
+  <div class="admin-shell hidden" id="adminShell">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <img src="/assets/otbasy-logo-final.png" alt="ОТБАСЫ">
+        <div>
+          <strong>ОТБАСЫ</strong>
+          <span>админка витрины</span>
+        </div>
+      </div>
+
+      <nav class="nav-list" id="navList" aria-label="Разделы админки">
+        <button class="nav-item active" data-page="dashboard">Обзор</button>
+        <button class="nav-item" data-page="products">Товары</button>
+        <button class="nav-item" data-page="categories">Категории</button>
+        <button class="nav-item" data-page="analytics">Аналитика</button>
+        <button class="nav-item" data-page="settings" data-admin-only="true">Настройки витрины</button>
+        <button class="nav-item" data-page="users" data-admin-only="true">Пользователи</button>
+      </nav>
+
+      <div class="sidebar-note">
+        <span>Логика карточки</span>
+        <strong>Фото + Kaspi + Видео</strong>
+        <small>Цены, корзины и оплаты здесь нет.</small>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="pageEyebrow">Instagram витрина</p>
+          <h1 id="pageTitle">Обзор</h1>
+        </div>
+        <div class="topbar-actions">
+          <a class="ghost-button" href="/vitrine/" target="_blank" rel="noopener noreferrer">Открыть витрину</a>
+          <button class="primary-button" id="addProductTopButton">+ Товар</button>
+          <button class="icon-button" id="logoutButton" title="Выйти">⎋</button>
+        </div>
+      </header>
+
+      <div class="status-bar" id="statusBar" role="status" aria-live="polite">Готово к работе</div>
+
+      <section class="page active" id="dashboardPage">
+        <div class="metric-grid">
+          <article class="metric-card"><span>Опубликовано</span><strong id="metricActive">0</strong><small>видны на витрине</small></article>
+          <article class="metric-card"><span>Хиты</span><strong id="metricHit">0</strong><small>нижняя вкладка</small></article>
+          <article class="metric-card"><span>Новинки</span><strong id="metricNew">0</strong><small>нижняя вкладка</small></article>
+          <article class="metric-card"><span>Акции</span><strong id="metricPromo">0</strong><small>нижняя вкладка</small></article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel big-panel">
+            <div class="panel-heading split">
+              <div>
+                <p class="eyebrow">Главное</p>
+                <h2>Что уже подвязано</h2>
+              </div>
+              <button class="primary-button" id="quickAddButton">Добавить товар</button>
+            </div>
+            <ul class="check-list">
+              <li><span>✓</span> Товар без цены: название, категория, фото, Kaspi URL, видеообзор.</li>
+              <li><span>✓</span> Фото можно вставить ссылкой или загрузить файлом — файл сохраняется в Supabase Storage.</li>
+              <li><span>✓</span> Витрина берёт данные из Supabase и показывает только опубликованные товары.</li>
+              <li><span>✓</span> Вкладки витрины: Все, Хиты, Новинки, Акции.</li>
+              <li><span>✓</span> Дизайн витрины вынес отдельно и визуально не менялся.</li>
+            </ul>
+          </article>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <p class="eyebrow">Контроль</p>
+              <h2>Ссылки</h2>
+            </div>
+            <div class="link-list">
+              <a href="/admin/" target="_blank" rel="noopener noreferrer">Админка</a>
+              <a href="/vitrine/" target="_blank" rel="noopener noreferrer">Мобильная витрина</a>
+              <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer">Supabase Dashboard</a>
+              <a href="https://vercel.com/dashboard" target="_blank" rel="noopener noreferrer">Vercel Dashboard</a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="page" id="productsPage">
+        <div class="panel">
+          <div class="panel-heading split">
+            <div>
+              <p class="eyebrow">Управление товаром</p>
+              <h2>Карточки витрины</h2>
+            </div>
+            <button class="primary-button" id="addProductButton">+ Добавить товар</button>
+          </div>
+
+          <div class="toolbar">
+            <label class="search-input">Поиск<input id="productSearch" type="search" placeholder="Название, категория, ссылка"></label>
+            <label>Фильтр
+              <select id="productFilter">
+                <option value="all">Все товары</option>
+                <option value="active">Опубликованные</option>
+                <option value="hit">Хиты</option>
+                <option value="new">Новинки</option>
+                <option value="promo">Акции</option>
+                <option value="draft">Черновики</option>
+                <option value="hidden">Скрытые</option>
+              </select>
+            </label>
+          </div>
+
+          <p class="muted small sort-help">Порядок на витрине можно менять перетаскиванием строк за область «⋮⋮». Первый товар в этом списке показывается первым на мобильной витрине.</p>
+
+          <div class="table-wrap">
+            <table class="products-table">
+              <thead>
+                <tr>
+                  <th>Порядок</th>
+                  <th>Фото</th>
+                  <th>Товар</th>
+                  <th>Категория</th>
+                  <th>Метка</th>
+                  <th>Статус</th>
+                  <th>Ссылки</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="productsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="categoriesPage">
+        <div class="panel">
+          <div class="panel-heading split">
+            <div>
+              <p class="eyebrow">Категории</p>
+              <h2>Разделы для фильтра витрины</h2>
+            </div>
+          </div>
+          <form class="inline-form" id="categoryForm">
+            <input name="name" placeholder="Например: Дом" required>
+            <input name="sort" type="number" placeholder="Порядок" value="50">
+            <button class="primary-button" type="submit">Добавить категорию</button>
+          </form>
+          <div class="category-list" id="categoryList"></div>
+        </div>
+      </section>
+
+      <section class="page" id="analyticsPage">
+        <div class="metric-grid analytics-metrics">
+          <article class="metric-card"><span>Просмотры товаров</span><strong id="metricViews">0</strong><small>видимые карточки</small></article>
+          <article class="metric-card"><span>Клики Kaspi</span><strong id="metricKaspiClicks">0</strong><small>переходы к покупке</small></article>
+          <article class="metric-card"><span>Клики видео</span><strong id="metricVideoClicks">0</strong><small>интерес к обзорам</small></article>
+          <article class="metric-card"><span>Kaspi CTR</span><strong id="metricKaspiCtr">0%</strong><small>клики / просмотры</small></article>
+        </div>
+
+        <div class="dashboard-grid analytics-grid">
+          <article class="panel big-panel">
+            <div class="panel-heading split">
+              <div>
+                <p class="eyebrow">Мониторинг спроса</p>
+                <h2>Какие товары двигают витрину</h2>
+              </div>
+              <div class="analytics-actions">
+                <button class="ghost-button" id="refreshAnalyticsButton" type="button">Обновить</button>
+                <button class="ghost-button danger" id="resetAnalyticsButton" type="button">Сбросить</button>
+              </div>
+            </div>
+            <div class="table-wrap analytics-table-wrap">
+              <table class="products-table analytics-table">
+                <thead>
+                  <tr>
+                    <th>Товар</th>
+                    <th>Метка</th>
+                    <th>Просмотры</th>
+                    <th>Видео</th>
+                    <th>Kaspi</th>
+                    <th>CTR</th>
+                    <th>Рекомендация</th>
+                  </tr>
+                </thead>
+                <tbody id="analyticsTableBody"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <aside class="analytics-side">
+            <article class="panel">
+              <div class="panel-heading">
+                <p class="eyebrow">Вкладки витрины</p>
+                <h2>Все / Хиты / Новинки / Акции</h2>
+              </div>
+              <div class="tag-analytics" id="tagAnalytics"></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading">
+                <p class="eyebrow">Что сделать</p>
+                <h2>Подсказки</h2>
+              </div>
+              <div class="insight-list" id="analyticsInsights"></div>
+            </article>
+          </aside>
+        </div>
+      </section>
+
+      <section class="page" id="settingsPage">
+        <div class="panel">
+          <div class="panel-heading">
+            <p class="eyebrow">Тексты и главная ссылка</p>
+            <h2>Настройки мобильной витрины</h2>
+          </div>
+          <form class="settings-grid" id="settingsForm">
+            <label>Название магазина<input name="storeName"></label>
+            <label>Надпись над заголовком<input name="eyebrow"></label>
+            <label>Заголовок в шапке<input name="heroTitle"></label>
+            <label>Текст кнопки<input name="heroButtonText"></label>
+            <label>Заголовок каталога<input name="catalogTitle"></label>
+            <label>Placeholder поиска<input name="searchPlaceholder"></label>
+            <label>Общая ссылка Kaspi-магазина<input name="kaspiStoreUrl" placeholder="https://kaspi.kz/shop/... "></label>
+            <label>Текст Kaspi-блока<input name="kaspiStoreTitle"></label>
+            <label>Подпись Kaspi-блока<input name="kaspiStoreSubtitle"></label>
+            <button class="primary-button" type="submit">Сохранить настройки</button>
+          </form>
+        </div>
+      </section>
+
+
+      <section class="page" id="usersPage">
+        <div class="panel">
+          <div class="panel-heading split">
+            <div>
+              <p class="eyebrow">Доступ</p>
+              <h2>Пользователи админки</h2>
+            </div>
+          </div>
+          <form class="settings-grid" id="userForm">
+            <label>Имя<input name="fullName" placeholder="Например: Алия"></label>
+            <label>Email<input name="email" type="email" placeholder="user@example.com" required></label>
+            <label>Пароль<input name="password" type="password" minlength="8" placeholder="Минимум 8 символов" required></label>
+            <label>Роль
+              <select name="role">
+                <option value="content_manager">Контент-менеджер</option>
+                <option value="admin">Администратор</option>
+              </select>
+            </label>
+            <button class="primary-button" type="submit">Создать пользователя</button>
+          </form>
+          <p class="muted small">Создание пользователей выполняется через защищённую Vercel API-функцию. Service Role ключ не попадает в браузер.</p>
+          <div class="table-wrap users-table-wrap">
+            <table class="products-table">
+              <thead>
+                <tr>
+                  <th>Пользователь</th>
+                  <th>Роль</th>
+                  <th>Статус</th>
+                  <th>Создан</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="product-dialog" id="productDialog">
+    <form method="dialog" class="dialog-card" id="productForm">
+      <div class="panel-heading split">
+        <div>
+          <p class="eyebrow" id="productDialogMode">Новый товар</p>
+          <h2>Карточка товара</h2>
+        </div>
+        <button class="icon-button" value="cancel" type="button" id="closeProductDialog">×</button>
+      </div>
+
+      <input type="hidden" name="id">
+      <div class="product-form-grid">
+        <div class="form-stack">
+          <label>Название товара<input name="title" required placeholder="Например: Мини-блендер для смузи"></label>
+          <label>Категория<select name="category" required></select></label>
+          <div class="two-col">
+            <label>Метка
+              <select name="tag">
+                <option value="none">Без метки</option>
+                <option value="hit">Хит</option>
+                <option value="new">Новинка</option>
+                <option value="promo">Акция</option>
+              </select>
+            </label>
+            <label>Статус
+              <select name="status">
+                <option value="active">Опубликован</option>
+                <option value="draft">Черновик</option>
+                <option value="hidden">Скрыт</option>
+              </select>
+            </label>
+          </div>
+          <label>Ссылка на товар Kaspi<input name="kaspiUrl" type="text" inputmode="url" placeholder="https://kaspi.kz/... или kaspi.kz/shop/..."></label>
+          <label>Ссылка на видеообзор<input name="videoUrl" type="text" inputmode="url" placeholder="Instagram / TikTok / YouTube ссылка"></label>
+          <label>Порядок сортировки<input name="sort" type="number" value="100"></label>
+          <label>Заметка<textarea name="note" rows="3" placeholder="Внутренняя заметка для администратора"></textarea></label>
+        </div>
+
+        <div class="image-box">
+          <div class="image-preview" id="imagePreview"><span>Фото</span></div>
+          <label>Фото по URL<input name="imageUrl" type="text" inputmode="url" placeholder="https://.../photo.png"></label>
+          <button class="ghost-button compact" type="button" id="addImageUrlButton">+ Добавить URL в фото</button>
+          <label>Или загрузить файлы<input name="imageFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label>
+          <div class="gallery-manager">
+            <div class="gallery-head">
+              <strong>Фотографии товара</strong>
+              <span>первая — обложка</span>
+            </div>
+            <div class="gallery-list" id="imageGalleryList"></div>
+          </div>
+          <p class="muted small">Можно добавить несколько фото, менять порядок кнопками ↑ / ↓ и удалить лишние. На витрине клик по фото откроет галерею.</p>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="ghost-button" type="button" id="deleteProductButton">Удалить</button>
+        <span class="spacer"></span>
+        <button class="ghost-button" type="button" id="saveAndNewButton">Сохранить и добавить ещё</button>
+        <button class="primary-button" type="submit">Сохранить</button>
+      </div>
+    </form>
+  </dialog>
+
+</body>
+</html>

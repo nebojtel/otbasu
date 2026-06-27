@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 900">
+  <defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#5a1a2e"/><stop offset="1" stop-color="#1a0710"/></linearGradient></defs>
+  <rect width="720" height="900" fill="url(#g)"/>
+  <image href="product-blender.png" x="78" y="110" width="564" height="564" preserveAspectRatio="xMidYMid slice"/>
+  <rect x="78" y="110" width="564" height="564" rx="38" fill="none" stroke="#f0d080" stroke-width="5" opacity=".75"/>
+  <path d="M108 716h504v86H108z" fill="#fff6e6" opacity=".95"/>
+  <text x="360" y="770" text-anchor="middle" font-family="Georgia,serif" font-size="35" font-weight="700" fill="#3d0f1e">ОТБАСЫ • фото 5</text>
+</svg>

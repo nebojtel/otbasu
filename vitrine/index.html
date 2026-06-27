@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fbf0df">
+  <title>ОТБАСЫ | Витрина</title>
+  <link rel="stylesheet" href="/vitrine/styles.css">
+  <script type="module" src="/src/vitrine.js"></script>
+</head>
+<body>
+  <main class="app" aria-label="Мобильная витрина ОТБАСЫ">
+    <section class="screen">
+      <header class="hero">
+        <img class="hero-decor decor-left" src="/assets/hero-decor-left.png" alt="">
+        <img class="hero-decor decor-right" src="/assets/hero-decor-right.png" alt="">
+
+        <img class="brand-logo" src="/assets/otbasy-logo-final.png" alt="ОТБАСЫ">
+
+        <p class="eyebrow" data-hero-eyebrow>Instagram витрина</p>
+        <h1 data-hero-title>Товары для дома и семьи</h1>
+
+        <a class="hero-button" href="#catalog" data-hero-button>
+          Смотреть товары
+        </a>
+      </header>
+
+      <div class="kaspi-sticky">
+        <a class="kaspi-store-link" href="#" data-kaspi-store-link aria-label="Смотреть все товары магазина ОТБАСЫ на Kaspi">
+          <span class="kaspi-store-icon" aria-hidden="true"></span>
+          <span>
+            <strong>Все товары ОТБАСЫ</strong>
+            <small>Открыть магазин на Kaspi</small>
+          </span>
+        </a>
+      </div>
+
+      <section class="catalog" id="catalog" aria-label="Каталог товаров">
+        <div class="catalog-header">
+          <h2 data-catalog-title>Популярные товары</h2>
+          <span data-product-count>4 товара</span>
+        </div>
+
+        <label class="search-bar">
+          <span class="search-icon" aria-hidden="true"></span>
+          <input data-search-input type="search" placeholder="Найти товар из обзора..." aria-label="Найти товар из обзора">
+        </label>
+
+        <div class="filter-row" aria-label="Фильтры каталога">
+          <button class="filter-select" type="button" data-category-filter>Все категории <span class="select-arrow" aria-hidden="true"></span></button>
+          <button class="filter-select" type="button" data-sort-toggle>По порядку <span class="select-arrow" aria-hidden="true"></span></button>
+        </div>
+
+        <div class="products-list" data-products-list>
+          <article class="product">
+            <div class="product-media">
+              <img class="photo" src="/assets/product-diffuser.png" alt="">
+              <span class="product-badge badge-hit">Хит</span>
+            </div>
+            <div class="content">
+              <p class="category-name">Дом</p>
+              <h2>Умный увлажнитель воздуха</h2>
+              <div class="actions">
+                <a class="video" href="#"><span></span>Видео</a>
+                <a class="kaspi" href="#"><span></span>Kaspi</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="product">
+            <div class="product-media">
+              <img class="photo" src="/assets/product-blender.png" alt="">
+              <span class="product-badge badge-new">Новинка</span>
+            </div>
+            <div class="content">
+              <p class="category-name">Техника</p>
+              <h2>Мини-блендер для смузи</h2>
+              <div class="actions">
+                <a class="video" href="#"><span></span>Видео</a>
+                <a class="kaspi" href="#"><span></span>Kaspi</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="product">
+            <div class="product-media">
+              <img class="photo" src="/assets/product-light.png" alt="">
+              <span class="product-badge badge-sale">Акция</span>
+            </div>
+            <div class="content">
+              <p class="category-name">Съемка</p>
+              <h2>LED-лампа для съемки</h2>
+              <div class="actions">
+                <a class="video" href="#"><span></span>Видео</a>
+                <a class="kaspi" href="#"><span></span>Kaspi</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="product">
+            <div class="product-media">
+              <img class="photo" src="/assets/product-organizer.png" alt="">
+              <span class="product-badge badge-new">Новинка</span>
+            </div>
+            <div class="content">
+              <p class="category-name">Уход</p>
+              <h2>Органайзер для косметики</h2>
+              <div class="actions">
+                <a class="video" href="#"><span></span>Видео</a>
+                <a class="kaspi" href="#"><span></span>Kaspi</a>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <nav class="bottom-nav" aria-label="Нижняя навигация">
+        <a class="active" href="#catalog" data-vitrine-filter="all">
+          <span class="nav-icon nav-home" aria-hidden="true"></span>
+          <span class="nav-label">Все</span>
+        </a>
+        <a href="#catalog" data-vitrine-filter="hit">
+          <span class="nav-icon nav-flame" aria-hidden="true"></span>
+          <span class="nav-label">Хиты</span>
+        </a>
+        <a href="#catalog" data-vitrine-filter="new">
+          <span class="nav-icon nav-sparkles" aria-hidden="true"></span>
+          <span class="nav-label">Новинки</span>
+        </a>
+        <a href="#catalog" data-vitrine-filter="promo">
+          <span class="nav-icon nav-tag" aria-hidden="true"></span>
+          <span class="nav-label">Акции</span>
+        </a>
+      </nav>
+    </section>
+  </main>
+
+  <div class="gallery-modal" id="galleryModal" aria-hidden="true">
+    <div class="gallery-backdrop" data-gallery-close></div>
+    <section class="gallery-sheet" role="dialog" aria-modal="true" aria-label="Галерея товара">
+      <button class="gallery-close" type="button" data-gallery-close aria-label="Закрыть галерею">×</button>
+      <div class="gallery-stage">
+        <button class="gallery-nav gallery-prev" type="button" data-gallery-prev aria-label="Предыдущее фото">‹</button>
+        <img class="gallery-image" src="" alt="">
+        <button class="gallery-nav gallery-next" type="button" data-gallery-next aria-label="Следующее фото">›</button>
+      </div>
+      <div class="gallery-info">
+        <strong class="gallery-title">Товар</strong>
+        <span class="gallery-counter">1 / 5</span>
+      </div>
+      <div class="gallery-dots" aria-label="Фото в галерее"></div>
+    </section>
+  </div>
+</body>
+</html>

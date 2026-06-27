@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="96" viewBox="0 0 360 96" fill="none">
+  <g opacity=".95" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 48h38c18 0 28-9 28-23 0-10-7-17-17-17-11 0-19 8-19 18 0 8 6 14 14 14 6 0 10-4 10-9" stroke="#f0c36c" stroke-width="4"/>
+    <path d="M8 48h38c18 0 28 9 28 23 0 10-7 17-17 17-11 0-19-8-19-18 0-8 6-14 14-14 6 0 10 4 10 9" stroke="#d58b3f" stroke-width="4"/>
+    <path d="M85 48h38c18 0 28-9 28-23 0-10-7-17-17-17-11 0-19 8-19 18 0 8 6 14 14 14 6 0 10-4 10-9" stroke="#f0c36c" stroke-width="4"/>
+    <path d="M85 48h38c18 0 28 9 28 23 0 10-7 17-17 17-11 0-19-8-19-18 0-8 6-14 14-14 6 0 10 4 10 9" stroke="#d58b3f" stroke-width="4"/>
+    <path d="M182 48h-38c-18 0-28-9-28-23 0-10 7-17 17-17 11 0 19 8 19 18 0 8-6 14-14 14-6 0-10-4-10-9" stroke="#f5d487" stroke-width="3" opacity=".72"/>
+    <path d="M182 48h-38c-18 0-28 9-28 23 0 10 7 17 17 17 11 0 19-8 19-18 0-8-6-14-14-14-6 0-10 4-10 9" stroke="#d78c44" stroke-width="3" opacity=".72"/>
+    <path d="M178 48h38c18 0 28-9 28-23 0-10-7-17-17-17-11 0-19 8-19 18 0 8 6 14 14 14 6 0 10-4 10-9" stroke="#f0c36c" stroke-width="4"/>
+    <path d="M178 48h38c18 0 28 9 28 23 0 10-7 17-17 17-11 0-19-8-19-18 0-8 6-14 14-14 6 0 10 4 10 9" stroke="#d58b3f" stroke-width="4"/>
+    <path d="M255 48h38c18 0 28-9 28-23 0-10-7-17-17-17-11 0-19 8-19 18 0 8 6 14 14 14 6 0 10-4 10-9" stroke="#f0c36c" stroke-width="4"/>
+    <path d="M255 48h38c18 0 28 9 28 23 0 10-7 17-17 17-11 0-19-8-19-18 0-8 6-14 14-14 6 0 10 4 10 9" stroke="#d58b3f" stroke-width="4"/>
+    <path d="M0 48h360" stroke="#f2c977" stroke-width="1.5" opacity=".55"/>
+  </g>
+</svg>
