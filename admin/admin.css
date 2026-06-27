@@ -732,3 +732,34 @@ tr:last-child td { border-bottom: 0; }
 }
 .users-table-wrap { margin-top: 18px; }
 .login-card .status-bar { margin: 0 0 12px; }
+/* FIX: миниатюры товаров в админке не должны раздуваться */
+#productsTableBody img,
+.products-table img,
+.products-table .product-thumb,
+.products-table .admin-thumb-wrap img {
+  width: 64px !important;
+  height: 64px !important;
+  max-width: 64px !important;
+  max-height: 64px !important;
+  object-fit: cover !important;
+  border-radius: 18px !important;
+  display: block !important;
+}
+
+.products-table .admin-thumb-wrap {
+  width: 64px !important;
+  height: 64px !important;
+  max-width: 64px !important;
+  overflow: hidden !important;
+  flex: 0 0 64px !important;
+}
+
+.products-table td,
+.products-table th {
+  vertical-align: middle !important;
+}
+
+.products-table td:first-child,
+.products-table td:nth-child(2) {
+  width: 90px !important;
+}
