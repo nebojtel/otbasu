@@ -369,76 +369,66 @@ function bindEvents() {
 bindEvents();
 loadState();
 /* =========================================================
-   OTBASU — FIX GALLERY MOBILE SWIPE EDGES
-   Вставить в самый конец файла src/vitrine.js
+   OTBASU — SAFE GALLERY SWIPE FIX V2
+   Вставить в конец src/vitrine.js
+
    Исправляет:
-   - плавный свайп фото влево / вправо
+   - свайп фото влево / вправо
    - упор на первом фото
    - упор на последнем фото
-   - защита от случайного закрытия сайта при лишнем свайпе
+   - НЕ блокирует обычные клики
 ========================================================= */
 
 (function () {
-  const PATCH_KEY = "__otbasu_gallery_edge_swipe_fix_v1__";
+  const PATCH_KEY = "__otbasu_gallery_safe_swipe_fix_v2__";
 
   if (window[PATCH_KEY]) return;
   window[PATCH_KEY] = true;
 
   const SWIPE_MIN = 45;
-  const VERTICAL_CLOSE_MIN = 70;
-  const HORIZONTAL_LOCK_MIN = 8;
+  const HORIZONTAL_LOCK_MIN = 12;
+  const EDGE_BOUNCE = 18;
 
   let startX = 0;
   let startY = 0;
   let lastX = 0;
   let lastY = 0;
-  let isDown = false;
-  let isHorizontal = false;
-  let pointerId = null;
-  let moved = false;
+  let dragging = false;
+  let horizontalDrag = false;
+  let activeTarget = null;
 
-  function getGalleryModal() {
+  function getModal() {
     return document.querySelector(
       ".gallery-modal, .photo-modal, .lightbox-modal, [data-gallery-modal]"
     );
   }
 
-  function isGalleryOpen() {
-    const modal = getGalleryModal();
+  function modalIsOpen() {
+    const modal = getModal();
 
     if (!modal) return false;
 
     const style = window.getComputedStyle(modal);
 
-    const visibleByStyle =
-      style.display !== "none" &&
-      style.visibility !== "hidden" &&
-      Number(style.opacity || 1) !== 0;
+    if (
+      style.display === "none" ||
+      style.visibility === "hidden" ||
+      Number(style.opacity || 1) === 0
+    ) {
+      return false;
+    }
 
-    const visibleByClass =
+    return (
       modal.classList.contains("open") ||
       modal.classList.contains("active") ||
       modal.classList.contains("is-open") ||
-      document.body.classList.contains("gallery-open");
-
-    return visibleByStyle && visibleByClass;
-  }
-
-  function getGalleryImage() {
-    const modal = getGalleryModal();
-
-    if (!modal) return null;
-
-    return (
-      modal.querySelector(".gallery-image") ||
-      modal.querySelector(".gallery-main-image") ||
-      modal.querySelector(".lightbox-image") ||
-      modal.querySelector("img")
+      document.body.classList.contains("gallery-open") ||
+      modal.getAttribute("aria-hidden") === "false"
     );
   }
 
-  function getGalleryMoveTarget() {
-    const modal = getGalleryModal();
+  function getMoveTarget() {
+    const modal = getModal();
 
     if (!modal) return null;
 
@@ -446,11 +436,13 @@ loadState();
       modal.querySelector(".gallery-sheet") ||
       modal.querySelector(".gallery-content") ||
       modal.querySelector(".lightbox-content") ||
-      getGalleryImage()
+      modal.querySelector(".gallery-image") ||
+      modal.querySelector(".lightbox-image") ||
+      modal.querySelector("img")
     );
   }
 
-  function getGalleryIndex() {
+  function getIndex() {
     try {
       if (typeof galleryState !== "undefined") {
         if (Number.isFinite(galleryState.index)) return galleryState.index;
@@ -463,13 +455,26 @@ loadState();
       ".gallery-thumb.active, .gallery-thumb.is-active, [data-gallery-thumb].active"
     );
 
-    if (activeThumb && activeThumb.dataset) {
-      const value =
+    if (activeThumb) {
+      const raw =
         activeThumb.dataset.index ||
         activeThumb.dataset.galleryIndex ||
         activeThumb.getAttribute("data-index");
 
-      const parsed = Number(value);
+      const parsed = Number(raw);
+
+      if (Number.isFinite(parsed)) return parsed;
+    }
+
+    const modal = getModal();
+
+    if (modal) {
+      const raw =
+        modal.dataset.index ||
+        modal.dataset.galleryIndex ||
+        modal.getAttribute("data-index");
+
+      const parsed = Number(raw);
 
       if (Number.isFinite(parsed)) return parsed;
     }
@@ -477,7 +482,7 @@ loadState();
     return 0;
   }
 
-  function getGalleryCount() {
+  function getCount() {
     try {
       if (typeof galleryState !== "undefined") {
         if (Array.isArray(galleryState.images)) return galleryState.images.length;
@@ -490,73 +495,74 @@ loadState();
       ".gallery-thumb, [data-gallery-thumb], .product-photo-thumb"
     );
 
-    if (thumbs && thumbs.length) return thumbs.length;
+    if (thumbs.length) return thumbs.length;
 
-    const modal = getGalleryModal();
+    const modal = getModal();
 
-    if (modal && modal.dataset) {
-      const count =
-        Number(modal.dataset.count) ||
-        Number(modal.dataset.galleryCount) ||
-        Number(modal.getAttribute("data-count"));
+    if (modal) {
+      const raw =
+        modal.dataset.count ||
+        modal.dataset.galleryCount ||
+        modal.getAttribute("data-count");
 
-      if (Number.isFinite(count) && count > 0) return count;
+      const parsed = Number(raw);
+
+      if (Number.isFinite(parsed) && parsed > 0) return parsed;
     }
 
     return 1;
   }
 
-  function isFirstPhoto() {
-    return getGalleryIndex() <= 0;
+  function isFirst() {
+    return getIndex() <= 0;
   }
 
-  function isLastPhoto() {
-    const count = getGalleryCount();
-    return getGalleryIndex() >= count - 1;
+  function isLast() {
+    return getIndex() >= getCount() - 1;
   }
 
-  function isBlockedDirection(direction) {
-    if (direction < 0 && isFirstPhoto()) return true;
-    if (direction > 0 && isLastPhoto()) return true;
+  function isBlocked(direction) {
+    if (direction < 0 && isFirst()) return true;
+    if (direction > 0 && isLast()) return true;
     return false;
   }
 
-  function resetVisual() {
-    const target = getGalleryMoveTarget();
+  function resetPosition() {
+    const target = getMoveTarget();
 
     if (!target) return;
 
     target.style.transition = "transform 180ms ease";
     target.style.transform = "translate3d(0, 0, 0)";
 
-    window.setTimeout(function () {
+    setTimeout(function () {
       target.style.transition = "";
     }, 220);
   }
 
-  function softEdgeBounce(direction) {
-    const target = getGalleryMoveTarget();
+  function bounce(direction) {
+    const target = getMoveTarget();
 
     if (!target) return;
 
-    const bounceX = direction < 0 ? 18 : -18;
+    const x = direction < 0 ? EDGE_BOUNCE : -EDGE_BOUNCE;
 
     target.style.transition = "transform 120ms ease";
-    target.style.transform = "translate3d(" + bounceX + "px, 0, 0)";
+    target.style.transform = "translate3d(" + x + "px, 0, 0)";
 
-    window.setTimeout(function () {
+    setTimeout(function () {
       target.style.transition = "transform 180ms ease";
       target.style.transform = "translate3d(0, 0, 0)";
-    }, 90);
+    }, 100);
 
-    window.setTimeout(function () {
+    setTimeout(function () {
       target.style.transition = "";
-    }, 300);
+    }, 320);
   }
 
-  function moveGallery(direction) {
-    if (isBlockedDirection(direction)) {
-      softEdgeBounce(direction);
+  function go(direction) {
+    if (isBlocked(direction)) {
+      bounce(direction);
       return;
     }
 
@@ -567,96 +573,39 @@ loadState();
       }
     } catch (e) {}
 
-    const buttonSelector =
+    const selector =
       direction > 0
         ? ".gallery-next, [data-gallery-next], .lightbox-next"
         : ".gallery-prev, [data-gallery-prev], .lightbox-prev";
 
-    const button = document.querySelector(buttonSelector);
+    const btn = document.querySelector(selector);
 
-    if (button) {
-      button.click();
-    }
-  }
-
-  function closeGalleryBySwipe() {
-    try {
-      if (typeof closeGallery === "function") {
-        closeGallery("swipe");
-        return;
-      }
-    } catch (e) {}
-
-    const closeButton = document.querySelector(
-      ".gallery-close, [data-gallery-close], .lightbox-close"
-    );
-
-    if (closeButton) {
-      closeButton.click();
-    }
-  }
-
-  function lockPageWhenGalleryOpen() {
-    if (!document.getElementById("otbasu-gallery-edge-style")) {
-      const style = document.createElement("style");
-
-      style.id = "otbasu-gallery-edge-style";
-      style.textContent = `
-        body.gallery-open,
-        body.gallery-dragging {
-          overflow: hidden !important;
-          overscroll-behavior: none !important;
-          touch-action: none !important;
-        }
-
-        .gallery-modal,
-        .photo-modal,
-        .lightbox-modal,
-        [data-gallery-modal] {
-          overscroll-behavior: none !important;
-          touch-action: none !important;
-        }
-
-        .gallery-modal img,
-        .photo-modal img,
-        .lightbox-modal img,
-        [data-gallery-modal] img {
-          user-select: none !important;
-          -webkit-user-drag: none !important;
-          -webkit-touch-callout: none !important;
-        }
-      `;
-
-      document.head.appendChild(style);
+    if (btn) {
+      btn.click();
+    } else {
+      resetPosition();
     }
   }
 
   function onPointerDown(event) {
-    if (!isGalleryOpen()) return;
+    if (!modalIsOpen()) return;
 
-    lockPageWhenGalleryOpen();
+    const modal = getModal();
 
-    isDown = true;
-    isHorizontal = false;
-    moved = false;
-    pointerId = event.pointerId;
+    if (!modal || !modal.contains(event.target)) return;
+
+    dragging = true;
+    horizontalDrag = false;
+    activeTarget = event.target;
 
     startX = event.clientX;
     startY = event.clientY;
     lastX = startX;
     lastY = startY;
-
-    document.body.classList.add("gallery-dragging");
-
-    if (event.target && event.target.setPointerCapture && pointerId !== null) {
-      try {
-        event.target.setPointerCapture(pointerId);
-      } catch (e) {}
-    }
   }
 
   function onPointerMove(event) {
-    if (!isDown || !isGalleryOpen()) return;
+    if (!dragging || !modalIsOpen()) return;
 
     lastX = event.clientX;
     lastY = event.clientY;
@@ -664,95 +613,98 @@ loadState();
     const dx = lastX - startX;
     const dy = lastY - startY;
 
-    if (Math.abs(dx) > HORIZONTAL_LOCK_MIN || Math.abs(dy) > HORIZONTAL_LOCK_MIN) {
-      moved = true;
+    if (
+      !horizontalDrag &&
+      Math.abs(dx) > Math.abs(dy) &&
+      Math.abs(dx) > HORIZONTAL_LOCK_MIN
+    ) {
+      horizontalDrag = true;
     }
 
-    if (!isHorizontal && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > HORIZONTAL_LOCK_MIN) {
-      isHorizontal = true;
-    }
-
-    if (!isHorizontal) return;
+    if (!horizontalDrag) return;
 
     event.preventDefault();
-    event.stopImmediatePropagation();
 
     const direction = dx < 0 ? 1 : -1;
-    const blocked = isBlockedDirection(direction);
-    const target = getGalleryMoveTarget();
+    const blocked = isBlocked(direction);
+    const target = getMoveTarget();
 
-    if (target) {
-      const resistance = blocked ? 0.22 : 0.72;
-      const moveX = dx * resistance;
+    if (!target) return;
 
-      target.style.transition = "none";
-      target.style.transform = "translate3d(" + moveX + "px, 0, 0)";
-    }
+    const resistance = blocked ? 0.22 : 0.7;
+    const moveX = dx * resistance;
+
+    target.style.transition = "none";
+    target.style.transform = "translate3d(" + moveX + "px, 0, 0)";
   }
 
   function onPointerUp(event) {
-    if (!isDown || !isGalleryOpen()) {
-      clearPointer();
+    if (!dragging) {
+      clear();
       return;
     }
 
     const dx = lastX - startX;
     const dy = lastY - startY;
 
-    const wasHorizontal = isHorizontal || Math.abs(dx) > Math.abs(dy);
-
-    if (wasHorizontal) {
+    if (horizontalDrag && Math.abs(dx) > Math.abs(dy)) {
       event.preventDefault();
-      event.stopImmediatePropagation();
 
       if (Math.abs(dx) >= SWIPE_MIN) {
         const direction = dx < 0 ? 1 : -1;
-        moveGallery(direction);
+        go(direction);
       } else {
-        resetVisual();
+        resetPosition();
       }
 
-      clearPointer();
+      clear();
       return;
     }
 
-    if (Math.abs(dy) >= VERTICAL_CLOSE_MIN && Math.abs(dy) > Math.abs(dx)) {
-      closeGalleryBySwipe();
-      clearPointer();
-      return;
-    }
-
-    resetVisual();
-    clearPointer();
+    resetPosition();
+    clear();
   }
 
-  function clearPointer() {
-    isDown = false;
-    isHorizontal = false;
-    moved = false;
-    pointerId = null;
+  function clear() {
+    dragging = false;
+    horizontalDrag = false;
+    activeTarget = null;
+  }
 
-    document.body.classList.remove("gallery-dragging");
+  function addSafeStyle() {
+    if (document.getElementById("otbasu-safe-gallery-swipe-style")) return;
+
+    const style = document.createElement("style");
+
+    style.id = "otbasu-safe-gallery-swipe-style";
+    style.textContent = `
+      .gallery-modal,
+      .photo-modal,
+      .lightbox-modal,
+      [data-gallery-modal] {
+        overscroll-behavior: contain;
+      }
+
+      .gallery-modal img,
+      .photo-modal img,
+      .lightbox-modal img,
+      [data-gallery-modal] img {
+        user-select: none;
+        -webkit-user-drag: none;
+        -webkit-touch-callout: none;
+      }
+    `;
+
+    document.head.appendChild(style);
   }
 
   document.addEventListener("pointerdown", onPointerDown, true);
-  document.addEventListener("pointermove", onPointerMove, { capture: true, passive: false });
+  document.addEventListener("pointermove", onPointerMove, {
+    capture: true,
+    passive: false
+  });
   document.addEventListener("pointerup", onPointerUp, true);
-  document.addEventListener("pointercancel", clearPointer, true);
+  document.addEventListener("pointercancel", clear, true);
 
-  document.addEventListener(
-    "click",
-    function (event) {
-      if (!isGalleryOpen()) return;
-
-      if (moved) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        moved = false;
-      }
-    },
-    true
-  );
-
-  lockPageWhenGalleryOpen();
+  addSafeStyle();
 })();
