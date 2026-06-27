@@ -368,3 +368,158 @@ function bindEvents() {
 
 bindEvents();
 loadState();
+/* MOBILE SWIPE FIX: свайп фото в галерее товара */
+(() => {
+  const modal = document.getElementById('galleryModal');
+  const image = document.querySelector('.gallery-image');
+  const stage = document.querySelector('.gallery-stage');
+  const prevBtn = document.querySelector('[data-gallery-prev]');
+  const nextBtn = document.querySelector('[data-gallery-next]');
+
+  if (!modal || !image || !stage || !prevBtn || !nextBtn) return;
+
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  let currentX = 0;
+  let startTime = 0;
+  let moved = false;
+
+  const isGalleryOpen = () => modal.getAttribute('aria-hidden') === 'false';
+
+  function resetImage() {
+    image.style.transition = 'transform 220ms cubic-bezier(.2,.8,.2,1), opacity 220ms ease';
+    image.style.transform = 'translate3d(0,0,0) scale(1)';
+    image.style.opacity = '1';
+
+    window.setTimeout(() => {
+      image.style.transition = '';
+    }, 240);
+  }
+
+  function startSwipe(event) {
+    if (!isGalleryOpen()) return;
+    if (event.pointerType && event.pointerType === 'mouse') return;
+    if (event.target.closest('button, a')) return;
+
+    isDragging = true;
+    moved = false;
+    startX = event.clientX;
+    startY = event.clientY;
+    currentX = event.clientX;
+    startTime = Date.now();
+
+    image.style.transition = 'none';
+
+    try {
+      stage.setPointerCapture(event.pointerId);
+    } catch (_) {}
+  }
+
+  function moveSwipe(event) {
+    if (!isDragging || !isGalleryOpen()) return;
+
+    currentX = event.clientX;
+
+    const diffX = currentX - startX;
+    const diffY = event.clientY - startY;
+    const horizontalMove = Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 8;
+
+    if (!horizontalMove) return;
+
+    moved = true;
+
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+
+    const limitedX = Math.max(-110, Math.min(110, diffX));
+    const opacity = 1 - Math.min(Math.abs(limitedX) / 520, 0.18);
+    const scale = 1 - Math.min(Math.abs(limitedX) / 1800, 0.035);
+
+    image.style.transform = `translate3d(${limitedX}px,0,0) scale(${scale})`;
+    image.style.opacity = String(opacity);
+  }
+
+  function endSwipe(event) {
+    if (!isDragging || !isGalleryOpen()) return;
+
+    const diffX = currentX - startX;
+    const diffY = event.clientY - startY;
+    const time = Date.now() - startTime;
+
+    isDragging = false;
+
+    const normalSwipe = Math.abs(diffX) > 55 && Math.abs(diffX) > Math.abs(diffY) * 1.25;
+    const quickSwipe = Math.abs(diffX) > 30 && time < 230 && Math.abs(diffX) > Math.abs(diffY);
+
+    resetImage();
+
+    if (normalSwipe || quickSwipe) {
+      if (diffX < 0) {
+        nextBtn.click();
+      } else {
+        prevBtn.click();
+      }
+
+      if ('vibrate' in navigator) {
+        navigator.vibrate(8);
+      }
+    }
+
+    window.setTimeout(() => {
+      moved = false;
+    }, 260);
+  }
+
+  function cancelSwipe() {
+    isDragging = false;
+    moved = false;
+    resetImage();
+  }
+
+  if ('PointerEvent' in window) {
+    stage.addEventListener('pointerdown', startSwipe, { passive: true });
+    stage.addEventListener('pointermove', moveSwipe, { passive: false });
+    stage.addEventListener('pointerup', endSwipe, { passive: true });
+    stage.addEventListener('pointercancel', cancelSwipe, { passive: true });
+  } else {
+    stage.addEventListener('touchstart', (event) => {
+      const touch = event.touches[0];
+      if (!touch) return;
+      startSwipe({
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        target: event.target
+      });
+    }, { passive: true });
+
+    stage.addEventListener('touchmove', (event) => {
+      const touch = event.touches[0];
+      if (!touch) return;
+      moveSwipe({
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        cancelable: event.cancelable,
+        preventDefault: () => event.preventDefault()
+      });
+    }, { passive: false });
+
+    stage.addEventListener('touchend', (event) => {
+      const touch = event.changedTouches[0];
+      if (!touch) return;
+      endSwipe({
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      });
+    }, { passive: true });
+
+    stage.addEventListener('touchcancel', cancelSwipe, { passive: true });
+  }
+
+  stage.addEventListener('click', (event) => {
+    if (!moved) return;
+    event.preventDefault();
+    event.stopPropagation();
+  }, true);
+})();
