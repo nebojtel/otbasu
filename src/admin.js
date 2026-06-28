@@ -2807,7 +2807,7 @@ requireSession();
 
     ensureTurnstileBox();
 
-    if (!TURNSTILE_SITE_KEY || TURNSTILE_SITE_KEY === '0x4AAAAAADsFSLeLmrwPT9TL') {
+    if (!TURNSTILE_SITE_KEY || TURNSTILE_SITE_KEY === 'ВСТАВЬ_СЮДА_SITE_KEY') {
       setSubmitEnabled(false);
       setMessage('Нужно вставить Cloudflare Turnstile Site key в код.', 'error');
       return;
