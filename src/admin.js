@@ -1777,3 +1777,118 @@ requireSession();
   window.setTimeout(injectAnalyticsPolish, 500);
   window.setTimeout(injectAnalyticsPolish, 1500);
 })();
+/* OTBASU ADMIN EXIT BUTTON ONLY — SAFE
+   Делает понятную кнопку "Выйти".
+   Тёмную тему не добавляет.
+   Витрину, галерею и логику админки не трогает.
+*/
+(() => {
+  if (window.__OTBASU_ADMIN_EXIT_BUTTON_ONLY__) return;
+  window.__OTBASU_ADMIN_EXIT_BUTTON_ONLY__ = true;
+
+  const STYLE_ID = 'otbasu-admin-exit-button-only-style';
+
+  function injectExitButtonStyle() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+
+    style.textContent = `
+      .otbasu-admin-exit-button {
+        width: auto !important;
+        min-width: 104px !important;
+        height: 46px !important;
+        padding: 0 18px !important;
+        border-radius: 999px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        background: rgba(255, 248, 239, .95) !important;
+        color: #6b0f46 !important;
+        border: 1px solid rgba(123, 18, 79, .18) !important;
+        box-shadow: 0 12px 30px rgba(50, 8, 34, .12) !important;
+        font-size: 14px !important;
+        font-weight: 950 !important;
+        white-space: nowrap !important;
+        cursor: pointer !important;
+      }
+
+      .otbasu-admin-exit-button:hover {
+        background: #6b0f46 !important;
+        color: #fff8ef !important;
+        transform: translateY(-1px);
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  function findTopActionsContainer() {
+    const buttons = [...document.querySelectorAll('button, a')].filter((node) => {
+      const rect = node.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0 && rect.top < 180;
+    });
+
+    const addButton = buttons.find((node) => /товар/i.test(node.textContent || ''));
+    const vitrineButton = buttons.find((node) => /витрин/i.test(node.textContent || ''));
+
+    return addButton?.parentElement || vitrineButton?.parentElement || null;
+  }
+
+  function makeExitButtonClear() {
+    const topContainer = findTopActionsContainer();
+    if (!topContainer) return;
+
+    const buttons = [...topContainer.querySelectorAll('button, a')];
+
+    const exitButton =
+      buttons.find((node) => {
+        const text = (node.textContent || '').trim().toLowerCase();
+        const label = (node.getAttribute('aria-label') || node.getAttribute('title') || '').toLowerCase();
+
+        return (
+          text.includes('выйти') ||
+          label.includes('выйти') ||
+          label.includes('logout') ||
+          node.dataset.logout !== undefined ||
+          node.id?.toLowerCase?.().includes('logout') ||
+          node.className?.toString?.().toLowerCase?.().includes('logout')
+        );
+      }) ||
+      buttons.find((node) => {
+        const text = (node.textContent || '').trim();
+        const rect = node.getBoundingClientRect();
+
+        return (
+          !/товар/i.test(text) &&
+          !/витрин/i.test(text) &&
+          rect.width <= 64 &&
+          rect.height <= 64
+        );
+      });
+
+    if (!exitButton) return;
+
+    exitButton.classList.add('otbasu-admin-exit-button');
+    exitButton.setAttribute('title', 'Выйти из админки');
+    exitButton.setAttribute('aria-label', 'Выйти из админки');
+    exitButton.innerHTML = '⎋ Выйти';
+  }
+
+  function initExitButtonOnly() {
+    injectExitButtonStyle();
+    makeExitButtonClear();
+  }
+
+  injectExitButtonStyle();
+
+  document.addEventListener('DOMContentLoaded', () => {
+    window.setTimeout(initExitButtonOnly, 400);
+    window.setTimeout(initExitButtonOnly, 1200);
+  });
+
+  window.setTimeout(initExitButtonOnly, 500);
+  window.setTimeout(initExitButtonOnly, 1500);
+})();
