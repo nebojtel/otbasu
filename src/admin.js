@@ -2304,3 +2304,205 @@ requireSession();
   window.setTimeout(injectDarkInputsFix, 500);
   window.setTimeout(injectDarkInputsFix, 1500);
 })();
+/* OTBASU ADMIN DARK TABLES FINAL POLISH — SAFE
+   Улучшает читаемость таблиц в тёмной теме.
+   Исправляет налезание текста, email и порядок категорий.
+   Логику админки, витрину и галерею не трогаем.
+*/
+(() => {
+  if (window.__OTBASU_ADMIN_DARK_TABLES_FINAL_POLISH__) return;
+  window.__OTBASU_ADMIN_DARK_TABLES_FINAL_POLISH__ = true;
+
+  const STYLE_ID = 'otbasu-admin-dark-tables-final-polish-style';
+
+  function injectDarkTablesPolish() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+
+    style.textContent = `
+      /* АНАЛИТИКА: чтобы товар не налезал на метку */
+      body.otbasu-admin-dark #analyticsPage table {
+        table-layout: fixed !important;
+        min-width: 1080px !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage th:nth-child(1),
+      body.otbasu-admin-dark #analyticsPage td:nth-child(1) {
+        width: 330px !important;
+        min-width: 330px !important;
+        max-width: 330px !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage th:nth-child(2),
+      body.otbasu-admin-dark #analyticsPage td:nth-child(2) {
+        width: 110px !important;
+        min-width: 110px !important;
+        max-width: 110px !important;
+        text-align: left !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage td:first-child {
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        word-break: normal !important;
+        line-height: 1.25 !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage td:first-child img {
+        margin-right: 12px !important;
+        flex: 0 0 58px !important;
+        vertical-align: middle !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage td:nth-child(2) {
+        color: #ffb7dd !important;
+        font-weight: 950 !important;
+        white-space: nowrap !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage td:nth-child(7) {
+        width: 280px !important;
+        max-width: 280px !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        line-height: 1.25 !important;
+      }
+
+      /* ТОВАРЫ: ровные строки и нормальная читаемость */
+      body.otbasu-admin-dark #productsPage table {
+        table-layout: fixed !important;
+        min-width: 1100px !important;
+      }
+
+      body.otbasu-admin-dark #productsPage td,
+      body.otbasu-admin-dark #productsPage th {
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+      }
+
+      body.otbasu-admin-dark #productsPage td:nth-child(3) {
+        color: #fff8ef !important;
+        font-weight: 950 !important;
+        line-height: 1.25 !important;
+      }
+
+      body.otbasu-admin-dark #productsPage td:nth-child(4),
+      body.otbasu-admin-dark #productsPage td:nth-child(5),
+      body.otbasu-admin-dark #productsPage td:nth-child(6),
+      body.otbasu-admin-dark #productsPage td:nth-child(7) {
+        color: rgba(255, 244, 231, .92) !important;
+      }
+
+      /* КАТЕГОРИИ: порядок должен быть виден */
+      body.otbasu-admin-dark #categoriesPage li,
+      body.otbasu-admin-dark #categoriesPage div,
+      body.otbasu-admin-dark #categoriesPage span,
+      body.otbasu-admin-dark #categoriesPage p,
+      body.otbasu-admin-dark #categoriesPage small,
+      body.otbasu-admin-dark #categoriesPage td {
+        color: rgba(255, 244, 231, .9) !important;
+      }
+
+      body.otbasu-admin-dark #categoriesPage li *,
+      body.otbasu-admin-dark #categoriesPage [class*="order"],
+      body.otbasu-admin-dark #categoriesPage [class*="sort"],
+      body.otbasu-admin-dark #categoriesPage [data-order],
+      body.otbasu-admin-dark #categoriesPage [data-sort] {
+        color: rgba(255, 217, 170, .92) !important;
+        opacity: 1 !important;
+      }
+
+      body.otbasu-admin-dark #categoriesPage button {
+        color: #fff8ef !important;
+        opacity: 1 !important;
+      }
+
+      /* ПОЛЬЗОВАТЕЛИ: email не должен сливаться */
+      body.otbasu-admin-dark #usersPage table {
+        table-layout: fixed !important;
+        min-width: 900px !important;
+      }
+
+      body.otbasu-admin-dark #usersPage td,
+      body.otbasu-admin-dark #usersPage th {
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        line-height: 1.3 !important;
+      }
+
+      body.otbasu-admin-dark #usersPage td:first-child {
+        color: #fff8ef !important;
+        font-weight: 950 !important;
+      }
+
+      body.otbasu-admin-dark #usersPage td:nth-child(2),
+      body.otbasu-admin-dark #usersPage td:nth-child(3),
+      body.otbasu-admin-dark #usersPage td:nth-child(4) {
+        color: rgba(255, 244, 231, .92) !important;
+      }
+
+      /* Общая мягкая подсветка строк */
+      body.otbasu-admin-dark #analyticsPage tbody tr,
+      body.otbasu-admin-dark #productsPage tbody tr,
+      body.otbasu-admin-dark #usersPage tbody tr {
+        background: rgba(255, 248, 239, .105) !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage tbody tr:hover,
+      body.otbasu-admin-dark #productsPage tbody tr:hover,
+      body.otbasu-admin-dark #usersPage tbody tr:hover {
+        background: rgba(255, 248, 239, .16) !important;
+      }
+
+      /* Чтобы таблицы не ломали экран, а аккуратно скроллились */
+      body.otbasu-admin-dark #analyticsPage,
+      body.otbasu-admin-dark #productsPage,
+      body.otbasu-admin-dark #usersPage {
+        overflow-x: auto !important;
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  function cleanDuplicatedUserEmails() {
+    const userCells = document.querySelectorAll(
+      '#usersPage tbody td:first-child, #usersTableBody td:first-child'
+    );
+
+    userCells.forEach((cell) => {
+      const text = String(cell.textContent || '').trim();
+
+      if (!text || cell.dataset.otbasuEmailCleaned === 'true') return;
+
+      const half = text.slice(0, text.length / 2);
+
+      if (text.length % 2 === 0 && half && half === text.slice(text.length / 2)) {
+        cell.textContent = half;
+        cell.dataset.otbasuEmailCleaned = 'true';
+      }
+    });
+  }
+
+  function initDarkTablesPolish() {
+    injectDarkTablesPolish();
+    cleanDuplicatedUserEmails();
+  }
+
+  injectDarkTablesPolish();
+
+  document.addEventListener('DOMContentLoaded', () => {
+    window.setTimeout(initDarkTablesPolish, 400);
+    window.setTimeout(initDarkTablesPolish, 1200);
+  });
+
+  document.addEventListener('click', () => {
+    window.setTimeout(initDarkTablesPolish, 300);
+    window.setTimeout(initDarkTablesPolish, 900);
+  });
+
+  window.setTimeout(initDarkTablesPolish, 500);
+  window.setTimeout(initDarkTablesPolish, 1500);
+})();
