@@ -2606,25 +2606,15 @@ body.gallery-open {
   z-index: 0;
 }
 
-/* Чтобы содержимое карточки было поверх подсветки */
-.product-card > *,
-.product-item > *,
-.catalog-card > *,
-.item-card > *,
-.product > * {
-  position: relative;
-  z-index: 1;
-}
+/* === Более заметная рамка карточки === */
 
-/* При наведении на ПК */
-.product-card:hover,
-.product-item:hover,
-.catalog-card:hover,
-.item-card:hover,
-.product:hover {
-  border-color: rgba(104, 34, 50, 0.6) !important;
+.product-card,
+.product-item,
+.catalog-card,
+.item-card {
+  border: 2px solid rgba(105, 32, 48, 0.38);
   box-shadow:
-    0 10px 24px rgba(80, 35, 25, 0.22),
-    0 0 14px rgba(104, 34, 50, 0.18),
-    0 0 0 1px rgba(214, 170, 92, 0.4) !important;
+    0 6px 16px rgba(60, 25, 25, 0.16),
+    0 0 0 3px rgba(255, 244, 224, 0.85),
+    0 0 18px rgba(105, 32, 48, 0.12);
 }
