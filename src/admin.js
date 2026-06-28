@@ -1619,3 +1619,161 @@ requireSession();
   injectPhotoHintStyles();
   window.setTimeout(addPhotoSizeHint, 800);
 })();
+/* OTBASU ANALYTICS POLISH — SAFE
+   Только внешний вид вкладки аналитики.
+   Логику подсчёта, витрину, галерею и Supabase не трогаем.
+*/
+(() => {
+  if (window.__OTBASU_ANALYTICS_POLISH_SAFE__) return;
+  window.__OTBASU_ANALYTICS_POLISH_SAFE__ = true;
+
+  const STYLE_ID = 'otbasu-analytics-polish-safe-style';
+
+  function injectAnalyticsPolish() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+
+    style.textContent = `
+      /* Вкладка аналитики — аккуратнее таблица */
+      #analyticsPage table {
+        table-layout: fixed !important;
+      }
+
+      #analyticsPage th,
+      #analyticsPage td {
+        vertical-align: middle !important;
+      }
+
+      #analyticsPage th:nth-child(1),
+      #analyticsPage td:nth-child(1) {
+        width: 270px !important;
+      }
+
+      #analyticsPage th:nth-child(2),
+      #analyticsPage td:nth-child(2) {
+        width: 92px !important;
+      }
+
+      #analyticsPage th:nth-child(3),
+      #analyticsPage td:nth-child(3),
+      #analyticsPage th:nth-child(4),
+      #analyticsPage td:nth-child(4),
+      #analyticsPage th:nth-child(5),
+      #analyticsPage td:nth-child(5),
+      #analyticsPage th:nth-child(6),
+      #analyticsPage td:nth-child(6) {
+        width: 72px !important;
+        text-align: center !important;
+      }
+
+      #analyticsPage th:nth-child(7),
+      #analyticsPage td:nth-child(7) {
+        width: 250px !important;
+      }
+
+      #analyticsPage td {
+        height: 78px !important;
+      }
+
+      #analyticsPage td:first-child {
+        font-weight: 800 !important;
+        color: #3f0a2b !important;
+      }
+
+      #analyticsPage td:nth-child(3),
+      #analyticsPage td:nth-child(4),
+      #analyticsPage td:nth-child(5),
+      #analyticsPage td:nth-child(6) {
+        font-weight: 950 !important;
+        color: #5b0d3c !important;
+      }
+
+      /* Фото товара в аналитике одинаковые */
+      #analyticsPage td img {
+        width: 58px !important;
+        height: 58px !important;
+        min-width: 58px !important;
+        max-width: 58px !important;
+        min-height: 58px !important;
+        max-height: 58px !important;
+        object-fit: cover !important;
+        border-radius: 16px !important;
+        box-shadow: 0 8px 18px rgba(55, 8, 36, .14) !important;
+      }
+
+      /* Метки товара */
+      #analyticsPage td:nth-child(2) {
+        font-weight: 950 !important;
+        color: #7b124f !important;
+      }
+
+      /* Рекомендация — как аккуратный бейдж */
+      #analyticsPage td:nth-child(7) {
+        font-size: 13px !important;
+        line-height: 1.25 !important;
+        color: #4d0a33 !important;
+      }
+
+      #analyticsPage td:nth-child(7)::before {
+        content: "→ ";
+        color: #7b124f;
+        font-weight: 950;
+      }
+
+      #analyticsPage tbody tr {
+        overflow: hidden !important;
+      }
+
+      /* Карточки сверху — чуть выразительнее */
+      #analyticsPage .metric-card,
+      #analyticsPage .dashboard-card,
+      #analyticsPage .card {
+        transition:
+          transform 160ms ease,
+          box-shadow 160ms ease !important;
+      }
+
+      #analyticsPage .metric-card:hover,
+      #analyticsPage .dashboard-card:hover,
+      #analyticsPage .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 22px 54px rgba(50, 8, 34, .14) !important;
+      }
+
+      /* Правая колонка — подсказки читабельнее */
+      #analyticsPage .analytics-card li,
+      #analyticsPage .card li,
+      #analyticsPage aside li {
+        line-height: 1.45 !important;
+        margin-bottom: 8px !important;
+      }
+
+      /* Кнопки обновить / сбросить */
+      #analyticsPage button {
+        min-height: 42px !important;
+        padding-left: 18px !important;
+        padding-right: 18px !important;
+      }
+
+      /* На маленьких экранах пусть таблица спокойно скроллится */
+      @media (max-width: 1100px) {
+        #analyticsPage {
+          overflow-x: auto !important;
+        }
+
+        #analyticsPage table {
+          min-width: 920px !important;
+        }
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  injectAnalyticsPolish();
+  document.addEventListener('DOMContentLoaded', injectAnalyticsPolish);
+  window.setTimeout(injectAnalyticsPolish, 500);
+  window.setTimeout(injectAnalyticsPolish, 1500);
+})();
