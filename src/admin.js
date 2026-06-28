@@ -2051,3 +2051,154 @@ requireSession();
   window.setTimeout(initAdminTopButtons, 500);
   window.setTimeout(initAdminTopButtons, 1500);
 })();
+/* OTBASU ADMIN DARK THEME CONTRAST FIX — SAFE
+   Исправляет читаемость текста в тёмной теме.
+   Логику админки, витрину, галерею и аналитику не трогаем.
+*/
+(() => {
+  if (window.__OTBASU_ADMIN_DARK_CONTRAST_FIX__) return;
+  window.__OTBASU_ADMIN_DARK_CONTRAST_FIX__ = true;
+
+  const STYLE_ID = 'otbasu-admin-dark-contrast-fix-style';
+
+  function injectDarkContrastFix() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+
+    style.textContent = `
+      body.otbasu-admin-dark #analyticsPage,
+      body.otbasu-admin-dark #productsPage,
+      body.otbasu-admin-dark #categoriesPage,
+      body.otbasu-admin-dark #settingsPage,
+      body.otbasu-admin-dark #usersPage,
+      body.otbasu-admin-dark #dashboardPage {
+        color: #fff4e7 !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage h1,
+      body.otbasu-admin-dark #analyticsPage h2,
+      body.otbasu-admin-dark #analyticsPage h3,
+      body.otbasu-admin-dark #analyticsPage strong,
+      body.otbasu-admin-dark #analyticsPage label,
+      body.otbasu-admin-dark #productsPage h1,
+      body.otbasu-admin-dark #productsPage h2,
+      body.otbasu-admin-dark #productsPage h3,
+      body.otbasu-admin-dark #productsPage strong,
+      body.otbasu-admin-dark #productsPage label {
+        color: #fff4e7 !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage table,
+      body.otbasu-admin-dark #productsPage table {
+        color: #fff4e7 !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage thead th,
+      body.otbasu-admin-dark #productsPage thead th,
+      body.otbasu-admin-dark #usersPage thead th {
+        background: rgba(255, 248, 239, .92) !important;
+        color: #5b0d3c !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage tbody tr,
+      body.otbasu-admin-dark #productsTableBody tr,
+      body.otbasu-admin-dark #usersTableBody tr {
+        background: rgba(255, 248, 239, .11) !important;
+        color: #fff4e7 !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage tbody tr:hover,
+      body.otbasu-admin-dark #productsTableBody tr:hover,
+      body.otbasu-admin-dark #usersTableBody tr:hover {
+        background: rgba(255, 248, 239, .17) !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage td,
+      body.otbasu-admin-dark #analyticsPage td:first-child,
+      body.otbasu-admin-dark #analyticsPage td:nth-child(2),
+      body.otbasu-admin-dark #analyticsPage td:nth-child(3),
+      body.otbasu-admin-dark #analyticsPage td:nth-child(4),
+      body.otbasu-admin-dark #analyticsPage td:nth-child(5),
+      body.otbasu-admin-dark #analyticsPage td:nth-child(6),
+      body.otbasu-admin-dark #analyticsPage td:nth-child(7),
+      body.otbasu-admin-dark #productsTableBody td,
+      body.otbasu-admin-dark #usersTableBody td {
+        color: #fff4e7 !important;
+        border-color: rgba(255, 248, 239, .12) !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage td:first-child {
+        color: #fff4e7 !important;
+        font-weight: 900 !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage td:nth-child(2) {
+        color: #ffb7dd !important;
+        font-weight: 950 !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage td:nth-child(3),
+      body.otbasu-admin-dark #analyticsPage td:nth-child(4),
+      body.otbasu-admin-dark #analyticsPage td:nth-child(5),
+      body.otbasu-admin-dark #analyticsPage td:nth-child(6) {
+        color: #ffd9aa !important;
+        font-weight: 950 !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage td:nth-child(7) {
+        color: rgba(255, 244, 231, .92) !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage td:nth-child(7)::before {
+        color: #ffd9aa !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage .card,
+      body.otbasu-admin-dark #analyticsPage .analytics-card,
+      body.otbasu-admin-dark #analyticsPage .metric-card,
+      body.otbasu-admin-dark #analyticsPage .dashboard-card {
+        background: rgba(48, 7, 34, .9) !important;
+        border-color: rgba(255, 248, 239, .13) !important;
+      }
+
+      body.otbasu-admin-dark #analyticsPage .card p,
+      body.otbasu-admin-dark #analyticsPage .analytics-card p,
+      body.otbasu-admin-dark #analyticsPage .metric-card p,
+      body.otbasu-admin-dark #analyticsPage .dashboard-card p,
+      body.otbasu-admin-dark #analyticsPage li,
+      body.otbasu-admin-dark #analyticsPage span {
+        color: rgba(255, 244, 231, .88) !important;
+      }
+
+      body.otbasu-admin-dark .status-bar.ok {
+        background: rgba(210, 255, 220, .9) !important;
+        color: #075c2d !important;
+      }
+
+      body.otbasu-admin-dark .status-bar.ok * {
+        color: #075c2d !important;
+      }
+
+      body.otbasu-admin-dark .nav-link,
+      body.otbasu-admin-dark aside a,
+      body.otbasu-admin-dark aside button {
+        color: rgba(255, 244, 231, .78) !important;
+      }
+
+      body.otbasu-admin-dark .nav-link.active,
+      body.otbasu-admin-dark aside a.active,
+      body.otbasu-admin-dark aside button.active {
+        color: #fff8ef !important;
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  injectDarkContrastFix();
+  document.addEventListener('DOMContentLoaded', injectDarkContrastFix);
+  window.setTimeout(injectDarkContrastFix, 500);
+  window.setTimeout(injectDarkContrastFix, 1500);
+})();
