@@ -2641,7 +2641,7 @@ requireSession();
   if (window.__OTBASU_ADMIN_TURNSTILE_CAPTCHA__) return;
   window.__OTBASU_ADMIN_TURNSTILE_CAPTCHA__ = true;
 
-  const TURNSTILE_SITE_KEY = 'ВСТАВЬ_СЮДА_SITE_KEY';
+  const TURNSTILE_SITE_KEY = '0x4AAAAAADsFSLeLmrwPT9TL';
 
   const STYLE_ID = 'otbasu-admin-turnstile-style';
   const SCRIPT_ID = 'otbasu-turnstile-script';
