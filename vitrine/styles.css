@@ -2568,3 +2568,63 @@ body.gallery-open {
     font-size: 29px;
   }
 }
+/* === ОТБАСЫ: подсветка карточек товаров === */
+
+.product-card,
+.product-item,
+.catalog-card,
+.item-card,
+.product {
+  background: linear-gradient(180deg, #fffdf9 0%, #fff7ee 100%) !important;
+  border: 1.5px solid rgba(104, 34, 50, 0.35) !important;
+  border-radius: 18px !important;
+  box-shadow:
+    0 8px 20px rgba(80, 35, 25, 0.16),
+    0 0 0 1px rgba(214, 170, 92, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Лёгкая золотисто-бордовая подсветка внутри карточки */
+.product-card::before,
+.product-item::before,
+.catalog-card::before,
+.item-card::before,
+.product::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 225, 170, 0.35),
+    transparent 38%,
+    rgba(104, 34, 50, 0.08)
+  );
+  z-index: 0;
+}
+
+/* Чтобы содержимое карточки было поверх подсветки */
+.product-card > *,
+.product-item > *,
+.catalog-card > *,
+.item-card > *,
+.product > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* При наведении на ПК */
+.product-card:hover,
+.product-item:hover,
+.catalog-card:hover,
+.item-card:hover,
+.product:hover {
+  border-color: rgba(104, 34, 50, 0.6) !important;
+  box-shadow:
+    0 10px 24px rgba(80, 35, 25, 0.22),
+    0 0 14px rgba(104, 34, 50, 0.18),
+    0 0 0 1px rgba(214, 170, 92, 0.4) !important;
+}
