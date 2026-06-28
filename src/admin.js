@@ -2301,3 +2301,333 @@ requireSession();
 
   window.setTimeout(addStaticCompressionHint, 800);
 })();
+/* OTBASU ADMIN LOGIN BRUTE FORCE GUARD — SAFE
+   Защита формы входа от перебора пароля.
+   После 5 ошибок блокирует вход на 15 минут в этом браузере.
+   Если Supabase вернул 429 — блокирует на 30 минут.
+   Витрину, товары, галерею и аналитику не трогает.
+*/
+(() => {
+  if (window.__OTBASU_ADMIN_LOGIN_BRUTE_FORCE_GUARD__) return;
+  window.__OTBASU_ADMIN_LOGIN_BRUTE_FORCE_GUARD__ = true;
+
+  const STYLE_ID = 'otbasu-admin-login-guard-style';
+  const STORAGE_PREFIX = 'otbasu-admin-login-guard:';
+
+  const CONFIG = {
+    maxAttempts: 5,
+    lockMinutes: 15,
+    rateLimitLockMinutes: 30
+  };
+
+  let timer = null;
+
+  function injectLoginGuardStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+
+    style.textContent = `
+      .otbasu-login-guard-box {
+        margin: 10px 0 14px;
+        padding: 12px 14px;
+        border-radius: 16px;
+        font-size: 13px;
+        font-weight: 850;
+        line-height: 1.35;
+        border: 1px solid rgba(123, 18, 79, .14);
+        background: rgba(255, 248, 239, .88);
+        color: #5b0d3c;
+      }
+
+      .otbasu-login-guard-box.is-warning {
+        background: rgba(255, 239, 205, .92);
+        color: #805000;
+        border-color: rgba(128, 80, 0, .2);
+      }
+
+      .otbasu-login-guard-box.is-error {
+        background: rgba(255, 231, 231, .92);
+        color: #9c1028;
+        border-color: rgba(156, 16, 40, .18);
+      }
+
+      .otbasu-login-guard-box.is-ok {
+        background: rgba(226, 255, 235, .82);
+        color: #0d5c2e;
+        border-color: rgba(13, 92, 46, .14);
+      }
+
+      .otbasu-login-locked button[type="submit"] {
+        opacity: .55 !important;
+        cursor: not-allowed !important;
+        pointer-events: none !important;
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  function getLoginForm() {
+    return document.getElementById('loginForm') || els?.loginForm || null;
+  }
+
+  function getEmailFromForm() {
+    const form = getLoginForm();
+    if (!form) return 'unknown';
+
+    const formData = new FormData(form);
+    const email = String(formData.get('email') || '').trim().toLowerCase();
+
+    return email || 'unknown';
+  }
+
+  function getKey(email = getEmailFromForm()) {
+    return `${STORAGE_PREFIX}${email}`;
+  }
+
+  function readState(email = getEmailFromForm()) {
+    try {
+      return JSON.parse(localStorage.getItem(getKey(email)) || '{}') || {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function writeState(email, value) {
+    localStorage.setItem(getKey(email), JSON.stringify(value));
+  }
+
+  function clearState(email = getEmailFromForm()) {
+    localStorage.removeItem(getKey(email));
+  }
+
+  function getRemainingMs(email = getEmailFromForm()) {
+    const state = readState(email);
+    const lockedUntil = Number(state.lockedUntil || 0);
+    return Math.max(0, lockedUntil - Date.now());
+  }
+
+  function formatTime(ms) {
+    const totalSeconds = Math.ceil(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    if (minutes <= 0) return `${seconds} сек.`;
+
+    return `${minutes} мин. ${String(seconds).padStart(2, '0')} сек.`;
+  }
+
+  function getBox() {
+    injectLoginGuardStyles();
+
+    const form = getLoginForm();
+    if (!form) return null;
+
+    let box = document.getElementById('otbasuLoginGuardBox');
+
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'otbasuLoginGuardBox';
+      box.className = 'otbasu-login-guard-box';
+      form.prepend(box);
+    }
+
+    return box;
+  }
+
+  function showGuardMessage(text, type = 'warning') {
+    const box = getBox();
+    if (!box) return;
+
+    box.textContent = text;
+    box.className = `otbasu-login-guard-box is-${type}`;
+  }
+
+  function setLoginDisabled(disabled) {
+    const form = getLoginForm();
+    if (!form) return;
+
+    form.classList.toggle('otbasu-login-locked', disabled);
+
+    const submit = form.querySelector('button[type="submit"], input[type="submit"]');
+    if (submit) submit.disabled = disabled;
+  }
+
+  function updateLockUi() {
+    const email = getEmailFromForm();
+    const remaining = getRemainingMs(email);
+
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+
+    if (remaining <= 0) {
+      setLoginDisabled(false);
+
+      const state = readState(email);
+      if (Number(state.lockedUntil || 0) > 0) {
+        clearState(email);
+        showGuardMessage('Можно снова попробовать войти.', 'ok');
+      }
+
+      return false;
+    }
+
+    setLoginDisabled(true);
+
+    showGuardMessage(
+      `Слишком много неправильных попыток. Повтори вход через ${formatTime(remaining)}.`,
+      'error'
+    );
+
+    timer = setInterval(() => {
+      const nextRemaining = getRemainingMs(email);
+
+      if (nextRemaining <= 0) {
+        clearInterval(timer);
+        timer = null;
+        setLoginDisabled(false);
+        clearState(email);
+        showGuardMessage('Можно снова попробовать войти.', 'ok');
+        return;
+      }
+
+      showGuardMessage(
+        `Слишком много неправильных попыток. Повтори вход через ${formatTime(nextRemaining)}.`,
+        'error'
+      );
+    }, 1000);
+
+    return true;
+  }
+
+  function registerFailedAttempt(email, errorMessage = '') {
+    const state = readState(email);
+    const attempts = Number(state.attempts || 0) + 1;
+
+    const isRateLimited =
+      /429|too many|rate limit|rate exceeded|слишком много/i.test(String(errorMessage || ''));
+
+    if (isRateLimited) {
+      writeState(email, {
+        attempts,
+        lockedUntil: Date.now() + CONFIG.rateLimitLockMinutes * 60 * 1000
+      });
+
+      updateLockUi();
+      return;
+    }
+
+    if (attempts >= CONFIG.maxAttempts) {
+      writeState(email, {
+        attempts,
+        lockedUntil: Date.now() + CONFIG.lockMinutes * 60 * 1000
+      });
+
+      updateLockUi();
+      return;
+    }
+
+    writeState(email, {
+      attempts,
+      lockedUntil: 0
+    });
+
+    const left = Math.max(0, CONFIG.maxAttempts - attempts);
+
+    showGuardMessage(
+      `Неверный вход. Осталось попыток: ${left}. После этого вход временно заблокируется.`,
+      'warning'
+    );
+  }
+
+  function registerSuccessfulLogin(email) {
+    clearState(email);
+    setLoginDisabled(false);
+  }
+
+  function patchSupabaseLogin() {
+    if (!supabase?.auth?.signInWithPassword) return;
+    if (supabase.auth.signInWithPassword.__otbasuLoginGuardPatched) return;
+
+    const originalSignIn = supabase.auth.signInWithPassword.bind(supabase.auth);
+
+    const patchedSignIn = async (...args) => {
+      const email = String(args?.[0]?.email || getEmailFromForm()).trim().toLowerCase() || 'unknown';
+
+      const remaining = getRemainingMs(email);
+
+      if (remaining > 0) {
+        updateLockUi();
+
+        return {
+          data: null,
+          error: {
+            message: `Вход временно заблокирован. Повтори через ${formatTime(remaining)}.`
+          }
+        };
+      }
+
+      const result = await originalSignIn(...args);
+
+      if (result?.error) {
+        registerFailedAttempt(email, result.error.message);
+      } else {
+        registerSuccessfulLogin(email);
+      }
+
+      return result;
+    };
+
+    patchedSignIn.__otbasuLoginGuardPatched = true;
+    supabase.auth.signInWithPassword = patchedSignIn;
+  }
+
+  function blockSubmitWhenLocked(event) {
+    const email = getEmailFromForm();
+    const remaining = getRemainingMs(email);
+
+    if (remaining <= 0) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    updateLockUi();
+  }
+
+  function initLoginGuard() {
+    injectLoginGuardStyles();
+    patchSupabaseLogin();
+
+    const form = getLoginForm();
+
+    if (!form || form.dataset.otbasuLoginGuardReady === 'true') return;
+
+    form.dataset.otbasuLoginGuardReady = 'true';
+
+    form.addEventListener('submit', blockSubmitWhenLocked, true);
+
+    const emailInput =
+      form.querySelector('input[name="email"]') ||
+      form.querySelector('input[type="email"]');
+
+    emailInput?.addEventListener('input', () => {
+      window.setTimeout(updateLockUi, 50);
+    });
+
+    updateLockUi();
+  }
+
+  injectLoginGuardStyles();
+
+  document.addEventListener('DOMContentLoaded', () => {
+    window.setTimeout(initLoginGuard, 300);
+    window.setTimeout(initLoginGuard, 1000);
+  });
+
+  window.setTimeout(initLoginGuard, 500);
+})();
