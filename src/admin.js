@@ -1511,3 +1511,111 @@ requireSession();
   document.addEventListener('DOMContentLoaded', injectAdminImageSizeFix);
   window.setTimeout(injectAdminImageSizeFix, 500);
 })();
+/* OTBASU ADMIN PHOTO SIZE HINT — SAFE
+   Добавляет подсказку по правильному размеру фото.
+   Логику товаров, витрину, галерею и Supabase не трогаем.
+*/
+(() => {
+  if (window.__OTBASU_ADMIN_PHOTO_SIZE_HINT__) return;
+  window.__OTBASU_ADMIN_PHOTO_SIZE_HINT__ = true;
+
+  const STYLE_ID = 'otbasu-admin-photo-size-hint-style';
+  const HINT_ID = 'otbasuPhotoSizeHint';
+
+  function injectPhotoHintStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+
+    style.textContent = `
+      .otbasu-photo-size-hint {
+        margin: 12px 0 14px;
+        padding: 14px 16px;
+        border-radius: 20px;
+        background:
+          radial-gradient(circle at 0% 0%, rgba(255, 225, 185, .62), transparent 40%),
+          rgba(255, 255, 255, .82);
+        border: 1px solid rgba(123, 18, 79, .14);
+        box-shadow: 0 12px 28px rgba(50, 8, 34, .09);
+        color: #4d0a33;
+      }
+
+      .otbasu-photo-size-hint strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 13px;
+        font-weight: 950;
+        color: #7b124f;
+      }
+
+      .otbasu-photo-size-hint ul {
+        margin: 0;
+        padding-left: 18px;
+        display: grid;
+        gap: 5px;
+      }
+
+      .otbasu-photo-size-hint li {
+        font-size: 12px;
+        line-height: 1.35;
+        font-weight: 750;
+        color: rgba(77, 10, 51, .82);
+      }
+
+      .otbasu-photo-size-hint .bad {
+        color: #b4142b;
+        font-weight: 900;
+      }
+
+      .otbasu-photo-size-hint .good {
+        color: #7b124f;
+        font-weight: 950;
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  function addPhotoSizeHint() {
+    injectPhotoHintStyles();
+
+    if (document.getElementById(HINT_ID)) return;
+
+    const imagePreview = document.getElementById('imagePreview');
+    const imageGalleryList = document.getElementById('imageGalleryList');
+
+    if (!imagePreview && !imageGalleryList) return;
+
+    const anchor = imagePreview || imageGalleryList;
+
+    const hint = document.createElement('div');
+    hint.id = HINT_ID;
+    hint.className = 'otbasu-photo-size-hint';
+    hint.innerHTML = `
+      <strong>Размер фото для витрины</strong>
+      <ul>
+        <li><span class="good">Обложка товара:</span> 1080×1080 px или 1200×1200 px</li>
+        <li>Лучше квадратное фото, товар по центру, с отступами по краям</li>
+        <li><span class="bad">Не ставь первым фото 1080×1920</span> — оно может растянуть карточку</li>
+        <li>Вертикальные фото можно добавлять вторым, третьим, четвёртым — для галереи</li>
+      </ul>
+    `;
+
+    anchor.parentElement?.insertBefore(hint, anchor);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    injectPhotoHintStyles();
+    window.setTimeout(addPhotoSizeHint, 500);
+    window.setTimeout(addPhotoSizeHint, 1500);
+  });
+
+  document.addEventListener('click', () => {
+    window.setTimeout(addPhotoSizeHint, 300);
+    window.setTimeout(addPhotoSizeHint, 900);
+  });
+
+  injectPhotoHintStyles();
+  window.setTimeout(addPhotoSizeHint, 800);
+})();
