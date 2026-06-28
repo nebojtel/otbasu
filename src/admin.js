@@ -2202,3 +2202,105 @@ requireSession();
   window.setTimeout(injectDarkContrastFix, 500);
   window.setTimeout(injectDarkContrastFix, 1500);
 })();
+/* OTBASU ADMIN DARK INPUTS FIX — SAFE
+   Исправляет поля ввода в тёмной теме.
+   Логику админки, товары, витрину и галерею не трогаем.
+*/
+(() => {
+  if (window.__OTBASU_ADMIN_DARK_INPUTS_FIX__) return;
+  window.__OTBASU_ADMIN_DARK_INPUTS_FIX__ = true;
+
+  const STYLE_ID = 'otbasu-admin-dark-inputs-fix-style';
+
+  function injectDarkInputsFix() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+
+    style.textContent = `
+      body.otbasu-admin-dark #settingsPage input,
+      body.otbasu-admin-dark #settingsPage textarea,
+      body.otbasu-admin-dark #settingsPage select,
+      body.otbasu-admin-dark #productsPage input,
+      body.otbasu-admin-dark #productsPage textarea,
+      body.otbasu-admin-dark #productsPage select,
+      body.otbasu-admin-dark #productDialog input,
+      body.otbasu-admin-dark #productDialog textarea,
+      body.otbasu-admin-dark #productDialog select,
+      body.otbasu-admin-dark #categoriesPage input,
+      body.otbasu-admin-dark #categoriesPage textarea,
+      body.otbasu-admin-dark #categoriesPage select,
+      body.otbasu-admin-dark #usersPage input,
+      body.otbasu-admin-dark #usersPage textarea,
+      body.otbasu-admin-dark #usersPage select {
+        background: rgba(255, 248, 239, .12) !important;
+        color: #fff8ef !important;
+        border-color: rgba(255, 248, 239, .26) !important;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, .08),
+          0 8px 20px rgba(0, 0, 0, .12) !important;
+      }
+
+      body.otbasu-admin-dark #settingsPage input::placeholder,
+      body.otbasu-admin-dark #settingsPage textarea::placeholder,
+      body.otbasu-admin-dark #productsPage input::placeholder,
+      body.otbasu-admin-dark #productsPage textarea::placeholder,
+      body.otbasu-admin-dark #productDialog input::placeholder,
+      body.otbasu-admin-dark #productDialog textarea::placeholder,
+      body.otbasu-admin-dark #categoriesPage input::placeholder,
+      body.otbasu-admin-dark #categoriesPage textarea::placeholder,
+      body.otbasu-admin-dark #usersPage input::placeholder,
+      body.otbasu-admin-dark #usersPage textarea::placeholder {
+        color: rgba(255, 248, 239, .58) !important;
+      }
+
+      body.otbasu-admin-dark #settingsPage input:focus,
+      body.otbasu-admin-dark #settingsPage textarea:focus,
+      body.otbasu-admin-dark #settingsPage select:focus,
+      body.otbasu-admin-dark #productsPage input:focus,
+      body.otbasu-admin-dark #productsPage textarea:focus,
+      body.otbasu-admin-dark #productsPage select:focus,
+      body.otbasu-admin-dark #productDialog input:focus,
+      body.otbasu-admin-dark #productDialog textarea:focus,
+      body.otbasu-admin-dark #productDialog select:focus,
+      body.otbasu-admin-dark #categoriesPage input:focus,
+      body.otbasu-admin-dark #categoriesPage textarea:focus,
+      body.otbasu-admin-dark #categoriesPage select:focus {
+        border-color: rgba(255, 217, 170, .65) !important;
+        box-shadow:
+          0 0 0 4px rgba(255, 217, 170, .12),
+          inset 0 1px 0 rgba(255, 255, 255, .08) !important;
+      }
+
+      body.otbasu-admin-dark #settingsPage label,
+      body.otbasu-admin-dark #productsPage label,
+      body.otbasu-admin-dark #productDialog label,
+      body.otbasu-admin-dark #categoriesPage label,
+      body.otbasu-admin-dark #usersPage label {
+        color: #fff4e7 !important;
+        font-weight: 900 !important;
+      }
+
+      body.otbasu-admin-dark #settingsPage button,
+      body.otbasu-admin-dark #productsPage button,
+      body.otbasu-admin-dark #productDialog button,
+      body.otbasu-admin-dark #categoriesPage button {
+        color: #fff8ef !important;
+      }
+
+      body.otbasu-admin-dark #settingsPage button:not(.otbasu-admin-theme-toggle):not(.otbasu-admin-exit-button),
+      body.otbasu-admin-dark #productDialog button:not(.otbasu-admin-theme-toggle):not(.otbasu-admin-exit-button) {
+        background: linear-gradient(135deg, #7b124f, #4d0a33) !important;
+        border-color: rgba(255, 248, 239, .16) !important;
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  injectDarkInputsFix();
+  document.addEventListener('DOMContentLoaded', injectDarkInputsFix);
+  window.setTimeout(injectDarkInputsFix, 500);
+  window.setTimeout(injectDarkInputsFix, 1500);
+})();
