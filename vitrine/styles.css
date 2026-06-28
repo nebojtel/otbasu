@@ -2568,25 +2568,28 @@ body.gallery-open {
     font-size: 29px;
   }
 }
-/* === ОТБАСЫ: подсветка карточек товаров === */
+/* === ОТБАСЫ: более живая карточка товара для телефона === */
 
 .product-card,
 .product-item,
 .catalog-card,
 .item-card,
 .product {
-  background: linear-gradient(180deg, #fffdf9 0%, #fff7ee 100%) !important;
-  border: 1.5px solid rgba(104, 34, 50, 0.35) !important;
-  border-radius: 18px !important;
+  background:
+    linear-gradient(180deg, #fffdfa 0%, #fff5ea 100%) !important;
+  border: 2px solid rgba(105, 32, 48, 0.55) !important;
+  border-radius: 20px !important;
   box-shadow:
-    0 8px 20px rgba(80, 35, 25, 0.16),
-    0 0 0 1px rgba(214, 170, 92, 0.22),
+    0 7px 18px rgba(65, 24, 31, 0.22),
+    0 0 0 3px rgba(255, 239, 207, 0.9),
+    0 0 16px rgba(105, 32, 48, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
-  overflow: hidden;
-  position: relative;
+  overflow: hidden !important;
+  position: relative !important;
+  margin-bottom: 10px !important;
 }
 
-/* Лёгкая золотисто-бордовая подсветка внутри карточки */
+/* Живой золотисто-бордовый блик внутри карточки */
 .product-card::before,
 .product-item::before,
 .catalog-card::before,
@@ -2595,26 +2598,83 @@ body.gallery-open {
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: 18px;
+  border-radius: 20px;
   pointer-events: none;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 225, 170, 0.35),
-    transparent 38%,
-    rgba(104, 34, 50, 0.08)
-  );
+  background:
+    radial-gradient(circle at top left, rgba(255, 224, 160, 0.45), transparent 38%),
+    linear-gradient(135deg, rgba(255, 245, 225, 0.65), transparent 45%, rgba(105, 32, 48, 0.08));
   z-index: 0;
 }
 
-/* === Более заметная рамка карточки === */
+/* Тонкая бордовая линия сверху — чтобы карточка не сливалась */
+.product-card::after,
+.product-item::after,
+.catalog-card::after,
+.item-card::after,
+.product::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 0;
+  height: 3px;
+  border-radius: 0 0 20px 20px;
+  background: linear-gradient(90deg, transparent, #7a2538, #d6a85a, #7a2538, transparent);
+  opacity: 0.75;
+  pointer-events: none;
+  z-index: 2;
+}
 
-.product-card,
-.product-item,
-.catalog-card,
-.item-card {
-  border: 2px solid rgba(105, 32, 48, 0.38);
+/* Чтобы содержимое было поверх блика */
+.product-card > *,
+.product-item > *,
+.catalog-card > *,
+.item-card > *,
+.product > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Картинка товара тоже чуть выделяется */
+.product-card img,
+.product-item img,
+.catalog-card img,
+.item-card img,
+.product img {
+  border-radius: 14px !important;
   box-shadow:
-    0 6px 16px rgba(60, 25, 25, 0.16),
-    0 0 0 3px rgba(255, 244, 224, 0.85),
-    0 0 18px rgba(105, 32, 48, 0.12);
+    0 4px 10px rgba(55, 25, 20, 0.18),
+    0 0 0 1px rgba(105, 32, 48, 0.18) !important;
+}
+
+/* Кнопки внутри карточки чуть объёмнее */
+.product-card a,
+.product-card button,
+.product-item a,
+.product-item button,
+.catalog-card a,
+.catalog-card button,
+.item-card a,
+.item-card button,
+.product a,
+.product button {
+  box-shadow:
+    0 4px 10px rgba(80, 25, 35, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+/* Специально для мобильного — делаем контраст сильнее */
+@media (max-width: 600px) {
+  .product-card,
+  .product-item,
+  .catalog-card,
+  .item-card,
+  .product {
+    border: 2.2px solid rgba(105, 32, 48, 0.68) !important;
+    box-shadow:
+      0 8px 20px rgba(65, 24, 31, 0.28),
+      0 0 0 3px rgba(255, 235, 198, 0.95),
+      0 0 18px rgba(105, 32, 48, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+  }
 }
