@@ -2631,3 +2631,296 @@ requireSession();
 
   window.setTimeout(initLoginGuard, 500);
 })();
+/* OTBASU ADMIN CLOUDFLARE TURNSTILE — SAFE
+   Защита входа в админку через Cloudflare Turnstile + Supabase CAPTCHA.
+   В код вставляется только публичный Site key.
+   Secret key вставляется только в Supabase Dashboard.
+   Витрину, товары, галерею и аналитику не трогаем.
+*/
+(() => {
+  if (window.__OTBASU_ADMIN_TURNSTILE_CAPTCHA__) return;
+  window.__OTBASU_ADMIN_TURNSTILE_CAPTCHA__ = true;
+
+  const TURNSTILE_SITE_KEY = 'ВСТАВЬ_СЮДА_SITE_KEY';
+
+  const STYLE_ID = 'otbasu-admin-turnstile-style';
+  const SCRIPT_ID = 'otbasu-turnstile-script';
+  const WIDGET_ID = 'otbasuTurnstileBox';
+
+  let turnstileWidgetId = null;
+  let turnstileToken = '';
+
+  function injectTurnstileStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+
+    style.textContent = `
+      .otbasu-turnstile-wrap {
+        margin: 12px 0 14px;
+        padding: 12px;
+        border-radius: 18px;
+        background: rgba(255, 248, 239, .86);
+        border: 1px solid rgba(123, 18, 79, .13);
+        box-shadow: 0 12px 28px rgba(50, 8, 34, .08);
+      }
+
+      .otbasu-turnstile-title {
+        margin-bottom: 8px;
+        color: #5b0d3c;
+        font-size: 12px;
+        font-weight: 950;
+        line-height: 1.3;
+      }
+
+      .otbasu-turnstile-message {
+        margin-top: 8px;
+        color: rgba(91, 13, 60, .78);
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.35;
+      }
+
+      .otbasu-turnstile-message.is-error {
+        color: #9c1028;
+      }
+
+      .otbasu-turnstile-message.is-ok {
+        color: #0d5c2e;
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  function getLoginForm() {
+    try {
+      return document.getElementById('loginForm') || els?.loginForm || null;
+    } catch (_) {
+      return document.getElementById('loginForm') || null;
+    }
+  }
+
+  function getSubmitButton() {
+    const form = getLoginForm();
+    if (!form) return null;
+
+    return form.querySelector('button[type="submit"], input[type="submit"]');
+  }
+
+  function setMessage(text, type = '') {
+    const box = document.getElementById('otbasuTurnstileMessage');
+    if (!box) return;
+
+    box.className = `otbasu-turnstile-message ${type ? `is-${type}` : ''}`;
+    box.textContent = text;
+  }
+
+  function setSubmitEnabled(enabled) {
+    const button = getSubmitButton();
+    if (!button) return;
+
+    button.disabled = !enabled;
+    button.style.opacity = enabled ? '' : '.6';
+    button.style.cursor = enabled ? '' : 'not-allowed';
+  }
+
+  function injectTurnstileScript() {
+    return new Promise((resolve, reject) => {
+      if (window.turnstile) {
+        resolve();
+        return;
+      }
+
+      if (document.getElementById(SCRIPT_ID)) {
+        const wait = setInterval(() => {
+          if (window.turnstile) {
+            clearInterval(wait);
+            resolve();
+          }
+        }, 100);
+
+        window.setTimeout(() => {
+          clearInterval(wait);
+          if (window.turnstile) resolve();
+          else reject(new Error('Turnstile не загрузился'));
+        }, 8000);
+
+        return;
+      }
+
+      const preconnect = document.createElement('link');
+      preconnect.rel = 'preconnect';
+      preconnect.href = 'https://challenges.cloudflare.com';
+      document.head.appendChild(preconnect);
+
+      const script = document.createElement('script');
+      script.id = SCRIPT_ID;
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.async = true;
+      script.defer = true;
+
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Не удалось загрузить Turnstile'));
+
+      document.head.appendChild(script);
+    });
+  }
+
+  function ensureTurnstileBox() {
+    injectTurnstileStyles();
+
+    const form = getLoginForm();
+    if (!form) return null;
+
+    let wrap = document.getElementById(WIDGET_ID);
+
+    if (wrap) return wrap;
+
+    wrap = document.createElement('div');
+    wrap.id = WIDGET_ID;
+    wrap.className = 'otbasu-turnstile-wrap';
+
+    wrap.innerHTML = `
+      <div class="otbasu-turnstile-title">Защита входа от ботов</div>
+      <div id="otbasuTurnstileWidget"></div>
+      <div id="otbasuTurnstileMessage" class="otbasu-turnstile-message">
+        Проверка загрузится автоматически.
+      </div>
+    `;
+
+    const submit = getSubmitButton();
+
+    if (submit?.parentElement) {
+      submit.parentElement.insertBefore(wrap, submit);
+    } else {
+      form.appendChild(wrap);
+    }
+
+    return wrap;
+  }
+
+  async function renderTurnstile() {
+    const form = getLoginForm();
+    if (!form) return;
+
+    ensureTurnstileBox();
+
+    if (!TURNSTILE_SITE_KEY || TURNSTILE_SITE_KEY === '0x4AAAAAADsFSLeLmrwPT9TL') {
+      setSubmitEnabled(false);
+      setMessage('Нужно вставить Cloudflare Turnstile Site key в код.', 'error');
+      return;
+    }
+
+    try {
+      await injectTurnstileScript();
+
+      const container = document.getElementById('otbasuTurnstileWidget');
+
+      if (!container || !window.turnstile) return;
+
+      if (turnstileWidgetId !== null) return;
+
+      turnstileWidgetId = window.turnstile.render(container, {
+        sitekey: TURNSTILE_SITE_KEY,
+        theme: 'light',
+        size: 'normal',
+        callback: (token) => {
+          turnstileToken = token || '';
+          setSubmitEnabled(Boolean(turnstileToken));
+          setMessage('Проверка пройдена. Можно входить.', 'ok');
+        },
+        'expired-callback': () => {
+          turnstileToken = '';
+          setSubmitEnabled(false);
+          setMessage('Проверка устарела. Подтверди ещё раз.', 'error');
+        },
+        'error-callback': () => {
+          turnstileToken = '';
+          setSubmitEnabled(false);
+          setMessage('Проверка не прошла. Обнови страницу или попробуй ещё раз.', 'error');
+        }
+      });
+
+      setSubmitEnabled(false);
+      setMessage('Подтверди проверку, чтобы войти.');
+    } catch (error) {
+      console.error('[OTBASU] Turnstile error:', error);
+      setSubmitEnabled(false);
+      setMessage('Не удалось загрузить защиту входа. Проверь интернет или Cloudflare ключ.', 'error');
+    }
+  }
+
+  function resetTurnstile() {
+    turnstileToken = '';
+    setSubmitEnabled(false);
+
+    try {
+      if (window.turnstile && turnstileWidgetId !== null) {
+        window.turnstile.reset(turnstileWidgetId);
+      }
+    } catch (_) {}
+
+    setMessage('Подтверди проверку ещё раз.');
+  }
+
+  function patchSupabaseLogin() {
+    try {
+      if (!supabase?.auth?.signInWithPassword) return;
+      if (supabase.auth.signInWithPassword.__otbasuTurnstilePatched) return;
+
+      const originalSignIn = supabase.auth.signInWithPassword.bind(supabase.auth);
+
+      const patchedSignIn = async (...args) => {
+        if (!turnstileToken) {
+          setMessage('Сначала пройди проверку от ботов.', 'error');
+
+          return {
+            data: null,
+            error: {
+              message: 'Сначала пройди проверку от ботов.'
+            }
+          };
+        }
+
+        const payload = args[0] || {};
+
+        args[0] = {
+          ...payload,
+          options: {
+            ...(payload.options || {}),
+            captchaToken: turnstileToken
+          }
+        };
+
+        const result = await originalSignIn(...args);
+
+        if (result?.error) {
+          resetTurnstile();
+        }
+
+        return result;
+      };
+
+      patchedSignIn.__otbasuTurnstilePatched = true;
+      supabase.auth.signInWithPassword = patchedSignIn;
+    } catch (error) {
+      console.error('[OTBASU] Login patch error:', error);
+    }
+  }
+
+  function initTurnstileProtection() {
+    injectTurnstileStyles();
+    patchSupabaseLogin();
+    renderTurnstile();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    window.setTimeout(initTurnstileProtection, 400);
+    window.setTimeout(initTurnstileProtection, 1200);
+  });
+
+  window.setTimeout(initTurnstileProtection, 500);
+  window.setTimeout(initTurnstileProtection, 1500);
+})();
