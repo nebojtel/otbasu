@@ -1777,3 +1777,277 @@ requireSession();
   window.setTimeout(injectAnalyticsPolish, 500);
   window.setTimeout(injectAnalyticsPolish, 1500);
 })();
+/* OTBASU ADMIN TOP BUTTONS + THEME — SAFE
+   Делает понятную кнопку выхода и добавляет светлую/тёмную тему админки.
+   Логику товаров, витрину, галерею и аналитику не трогаем.
+*/
+(() => {
+  if (window.__OTBASU_ADMIN_TOP_BUTTONS_THEME__) return;
+  window.__OTBASU_ADMIN_TOP_BUTTONS_THEME__ = true;
+
+  const STYLE_ID = 'otbasu-admin-top-buttons-theme-style';
+  const THEME_KEY = 'otbasu-admin-theme';
+
+  function injectTopButtonStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+
+    style.textContent = `
+      .otbasu-admin-exit-button {
+        width: auto !important;
+        min-width: 104px !important;
+        height: 46px !important;
+        padding: 0 18px !important;
+        border-radius: 999px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        background: rgba(255, 248, 239, .95) !important;
+        color: #6b0f46 !important;
+        border: 1px solid rgba(123, 18, 79, .18) !important;
+        box-shadow: 0 12px 30px rgba(50, 8, 34, .12) !important;
+        font-size: 14px !important;
+        font-weight: 950 !important;
+        white-space: nowrap !important;
+      }
+
+      .otbasu-admin-exit-button:hover {
+        background: #6b0f46 !important;
+        color: #fff8ef !important;
+        transform: translateY(-1px);
+      }
+
+      .otbasu-admin-theme-toggle {
+        height: 46px !important;
+        padding: 0 18px !important;
+        border-radius: 999px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        background: linear-gradient(135deg, #3c0728, #6b0f46) !important;
+        color: #fff8ef !important;
+        border: 1px solid rgba(255, 248, 239, .2) !important;
+        box-shadow: 0 14px 32px rgba(50, 8, 34, .2) !important;
+        font-size: 14px !important;
+        font-weight: 950 !important;
+        cursor: pointer !important;
+        white-space: nowrap !important;
+      }
+
+      .otbasu-admin-theme-toggle:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 18px 38px rgba(50, 8, 34, .26) !important;
+      }
+
+      body.otbasu-admin-dark {
+        background:
+          radial-gradient(circle at 18% 0%, rgba(123, 18, 79, .28), transparent 34%),
+          radial-gradient(circle at 88% 12%, rgba(255, 210, 160, .1), transparent 30%),
+          linear-gradient(180deg, #1d0313 0%, #310620 100%) !important;
+        color: #fff4e7 !important;
+      }
+
+      body.otbasu-admin-dark aside,
+      body.otbasu-admin-dark .sidebar {
+        background: rgba(22, 3, 15, .86) !important;
+        color: #fff4e7 !important;
+        border-color: rgba(255, 248, 239, .12) !important;
+      }
+
+      body.otbasu-admin-dark .page,
+      body.otbasu-admin-dark .card,
+      body.otbasu-admin-dark .panel,
+      body.otbasu-admin-dark .metric-card,
+      body.otbasu-admin-dark .dashboard-card,
+      body.otbasu-admin-dark .table-card,
+      body.otbasu-admin-dark .settings-card,
+      body.otbasu-admin-dark .analytics-card,
+      body.otbasu-admin-dark #productDialog {
+        background: rgba(38, 6, 27, .9) !important;
+        color: #fff4e7 !important;
+        border-color: rgba(255, 248, 239, .12) !important;
+        box-shadow: 0 22px 60px rgba(0, 0, 0, .28) !important;
+      }
+
+      body.otbasu-admin-dark h1,
+      body.otbasu-admin-dark h2,
+      body.otbasu-admin-dark h3,
+      body.otbasu-admin-dark strong,
+      body.otbasu-admin-dark label {
+        color: #fff4e7 !important;
+      }
+
+      body.otbasu-admin-dark table,
+      body.otbasu-admin-dark thead th {
+        background: rgba(32, 5, 23, .95) !important;
+        color: rgba(255, 244, 231, .8) !important;
+      }
+
+      body.otbasu-admin-dark tbody tr,
+      body.otbasu-admin-dark #productsTableBody tr,
+      body.otbasu-admin-dark #analyticsPage tbody tr {
+        background: rgba(255, 248, 239, .08) !important;
+        color: #fff4e7 !important;
+      }
+
+      body.otbasu-admin-dark td {
+        color: #fff4e7 !important;
+        border-color: rgba(255, 248, 239, .1) !important;
+      }
+
+      body.otbasu-admin-dark input,
+      body.otbasu-admin-dark textarea,
+      body.otbasu-admin-dark select {
+        background: rgba(255, 248, 239, .08) !important;
+        color: #fff4e7 !important;
+        border-color: rgba(255, 248, 239, .18) !important;
+      }
+
+      body.otbasu-admin-dark input::placeholder,
+      body.otbasu-admin-dark textarea::placeholder {
+        color: rgba(255, 244, 231, .55) !important;
+      }
+
+      body.otbasu-admin-dark .otbasu-admin-exit-button {
+        background: rgba(255, 248, 239, .1) !important;
+        color: #fff4e7 !important;
+        border-color: rgba(255, 248, 239, .18) !important;
+      }
+
+      body.otbasu-admin-dark .otbasu-admin-theme-toggle {
+        background: linear-gradient(135deg, #fff8ef, #f0d7bd) !important;
+        color: #4d0a33 !important;
+      }
+
+      @media (max-width: 900px) {
+        .otbasu-admin-exit-button,
+        .otbasu-admin-theme-toggle {
+          min-width: 46px !important;
+          padding: 0 12px !important;
+          font-size: 0 !important;
+        }
+
+        .otbasu-admin-exit-button::after {
+          content: "Выйти";
+          font-size: 13px;
+        }
+
+        .otbasu-admin-theme-toggle::after {
+          content: attr(data-short-label);
+          font-size: 13px;
+        }
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  function applyTheme(theme) {
+    const isDark = theme === 'dark';
+
+    document.body.classList.toggle('otbasu-admin-dark', isDark);
+    localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
+
+    const toggle = document.getElementById('otbasuAdminThemeToggle');
+
+    if (toggle) {
+      toggle.innerHTML = isDark ? '☀️ Светлая тема' : '🌙 Тёмная тема';
+      toggle.dataset.shortLabel = isDark ? '☀️' : '🌙';
+      toggle.setAttribute('aria-label', isDark ? 'Включить светлую тему' : 'Включить тёмную тему');
+    }
+  }
+
+  function findTopActionsContainer() {
+    const buttons = [...document.querySelectorAll('button, a')].filter((node) => {
+      const rect = node.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0 && rect.top < 180;
+    });
+
+    const addButton = buttons.find((node) => /товар/i.test(node.textContent || ''));
+    const vitrineButton = buttons.find((node) => /витрин/i.test(node.textContent || ''));
+
+    return addButton?.parentElement || vitrineButton?.parentElement || null;
+  }
+
+  function makeExitButtonClear() {
+    const topContainer = findTopActionsContainer();
+    if (!topContainer) return;
+
+    const buttons = [...topContainer.querySelectorAll('button, a')];
+
+    let exitButton =
+      buttons.find((node) => {
+        const text = (node.textContent || '').trim().toLowerCase();
+        const label = (node.getAttribute('aria-label') || node.getAttribute('title') || '').toLowerCase();
+
+        return (
+          text === 'выйти' ||
+          label.includes('выйти') ||
+          label.includes('logout') ||
+          node.dataset.logout !== undefined ||
+          node.id?.toLowerCase?.().includes('logout') ||
+          node.className?.toString?.().toLowerCase?.().includes('logout')
+        );
+      }) ||
+      buttons.find((node) => {
+        const text = (node.textContent || '').trim();
+        const rect = node.getBoundingClientRect();
+
+        return (
+          !/товар/i.test(text) &&
+          !/витрин/i.test(text) &&
+          rect.width <= 64 &&
+          rect.height <= 64
+        );
+      });
+
+    if (!exitButton || exitButton.classList.contains('otbasu-admin-exit-button')) return;
+
+    exitButton.classList.add('otbasu-admin-exit-button');
+    exitButton.setAttribute('title', 'Выйти из админки');
+    exitButton.setAttribute('aria-label', 'Выйти из админки');
+    exitButton.innerHTML = '⎋ Выйти';
+  }
+
+  function addThemeToggle() {
+    const topContainer = findTopActionsContainer();
+    if (!topContainer) return;
+
+    if (document.getElementById('otbasuAdminThemeToggle')) return;
+
+    const toggle = document.createElement('button');
+    toggle.id = 'otbasuAdminThemeToggle';
+    toggle.className = 'otbasu-admin-theme-toggle';
+    toggle.type = 'button';
+
+    toggle.addEventListener('click', () => {
+      const nextTheme = document.body.classList.contains('otbasu-admin-dark') ? 'light' : 'dark';
+      applyTheme(nextTheme);
+    });
+
+    topContainer.appendChild(toggle);
+
+    const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
+    applyTheme(savedTheme);
+  }
+
+  function initAdminTopButtons() {
+    injectTopButtonStyles();
+    makeExitButtonClear();
+    addThemeToggle();
+  }
+
+  injectTopButtonStyles();
+
+  document.addEventListener('DOMContentLoaded', () => {
+    window.setTimeout(initAdminTopButtons, 400);
+    window.setTimeout(initAdminTopButtons, 1200);
+  });
+
+  window.setTimeout(initAdminTopButtons, 500);
+  window.setTimeout(initAdminTopButtons, 1500);
+})();
