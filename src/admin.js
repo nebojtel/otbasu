@@ -1353,3 +1353,161 @@ requireSession();
   injectSortArrowStyles();
   window.setTimeout(addSortButtons, 800);
 })();
+/* OTBASU ADMIN IMAGE SIZE FIX — SAFE
+   Делает все фото в админке одинаковыми.
+   Картинки не растягиваются, а аккуратно помещаются в рамку.
+   Логику сохранения, витрину и галерею не трогаем.
+*/
+(() => {
+  if (window.__OTBASU_ADMIN_IMAGE_SIZE_FIX__) return;
+  window.__OTBASU_ADMIN_IMAGE_SIZE_FIX__ = true;
+
+  const STYLE_ID = 'otbasu-admin-image-size-fix-style';
+
+  function injectAdminImageSizeFix() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+
+    style.textContent = `
+      /* Главное превью фото в карточке товара */
+      #imagePreview {
+        width: 100% !important;
+        height: 220px !important;
+        min-height: 220px !important;
+        max-height: 220px !important;
+        border-radius: 24px !important;
+        overflow: hidden !important;
+        display: grid !important;
+        place-items: center !important;
+        background:
+          radial-gradient(circle at 50% 0%, rgba(255, 224, 186, .55), transparent 48%),
+          rgba(255, 255, 255, .78) !important;
+      }
+
+      #imagePreview img {
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        object-fit: contain !important;
+        object-position: center !important;
+        display: block !important;
+        border-radius: 18px !important;
+        background: rgba(255, 248, 239, .92) !important;
+      }
+
+      /* Сетка фотографий товара справа */
+      #imageGalleryList {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, 132px) !important;
+        justify-content: start !important;
+        align-items: start !important;
+        gap: 12px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      #imageGalleryList > * {
+        width: 132px !important;
+        min-width: 132px !important;
+        max-width: 132px !important;
+        min-height: 172px !important;
+        border-radius: 20px !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+        background: rgba(255, 255, 255, .9) !important;
+        border: 1px solid rgba(123, 18, 79, .13) !important;
+        box-shadow: 0 10px 24px rgba(50, 8, 34, .1) !important;
+      }
+
+      #imageGalleryList img {
+        width: 100% !important;
+        height: 104px !important;
+        min-height: 104px !important;
+        max-height: 104px !important;
+        object-fit: contain !important;
+        object-position: center !important;
+        display: block !important;
+        padding: 6px !important;
+        box-sizing: border-box !important;
+        background: rgba(255, 248, 239, .95) !important;
+        border-radius: 16px !important;
+      }
+
+      /* Кнопки ↑ ↓ × внутри фото не должны растягивать карточку */
+      #imageGalleryList button {
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+        max-width: 32px !important;
+        max-height: 32px !important;
+        padding: 0 !important;
+        display: inline-grid !important;
+        place-items: center !important;
+        flex: 0 0 auto !important;
+      }
+
+      /* Миниатюры товаров в таблице админки */
+      #productsTableBody img,
+      #analyticsTableBody img {
+        width: 72px !important;
+        height: 72px !important;
+        min-width: 72px !important;
+        max-width: 72px !important;
+        min-height: 72px !important;
+        max-height: 72px !important;
+        object-fit: contain !important;
+        object-position: center !important;
+        padding: 4px !important;
+        box-sizing: border-box !important;
+        border-radius: 18px !important;
+        background: rgba(255, 248, 239, .95) !important;
+      }
+
+      /* Чтобы длинные фото не расширяли форму */
+      #productDialog,
+      #productDialog form {
+        overflow-x: hidden !important;
+      }
+
+      #productDialog * {
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+
+      @media (max-width: 760px) {
+        #imagePreview {
+          height: 190px !important;
+          min-height: 190px !important;
+          max-height: 190px !important;
+        }
+
+        #imageGalleryList {
+          grid-template-columns: repeat(auto-fill, 118px) !important;
+          gap: 10px !important;
+        }
+
+        #imageGalleryList > * {
+          width: 118px !important;
+          min-width: 118px !important;
+          max-width: 118px !important;
+        }
+
+        #imageGalleryList img {
+          height: 96px !important;
+          min-height: 96px !important;
+          max-height: 96px !important;
+        }
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  injectAdminImageSizeFix();
+  document.addEventListener('DOMContentLoaded', injectAdminImageSizeFix);
+  window.setTimeout(injectAdminImageSizeFix, 500);
+})();
