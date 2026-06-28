@@ -1394,3 +1394,30 @@ loadState();
 
   optimizeAllImages();
 })();
+// === ОТБАСЫ: скрыть плашку "Без метки" на витрине ===
+function hideNoLabelBadges() {
+  document
+    .querySelectorAll(".badge, .product-badge, .label, .product-label, .tag, .product-tag, [class*='badge'], [class*='label'], [class*='tag']")
+    .forEach((el) => {
+      const text = el.textContent.trim().toLowerCase();
+
+      if (
+        text === "без метки" ||
+        text === "без меток" ||
+        text === "нет метки" ||
+        text === "no label"
+      ) {
+        el.style.display = "none";
+        el.style.opacity = "0";
+        el.style.visibility = "hidden";
+      }
+    });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  hideNoLabelBadges();
+
+  setTimeout(hideNoLabelBadges, 300);
+  setTimeout(hideNoLabelBadges, 1000);
+  setTimeout(hideNoLabelBadges, 2000);
+});
