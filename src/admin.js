@@ -1892,3 +1892,412 @@ requireSession();
   window.setTimeout(initExitButtonOnly, 500);
   window.setTimeout(initExitButtonOnly, 1500);
 })();
+/* OTBASU ADMIN IMAGE AUTO COMPRESS — SAFE
+   Автоматически сжимает фото перед сохранением товара.
+   Главное фото делает квадратом 1080×1080.
+   Дополнительные фото уменьшает по большой стороне до 1600 px.
+   Витрину, галерею, аналитику и Supabase-логику не трогает.
+*/
+(() => {
+  if (window.__OTBASU_ADMIN_IMAGE_AUTO_COMPRESS__) return;
+  window.__OTBASU_ADMIN_IMAGE_AUTO_COMPRESS__ = true;
+
+  const STYLE_ID = 'otbasu-admin-image-auto-compress-style';
+
+  const CONFIG = {
+    coverSize: 1080,
+    galleryMaxSide: 1600,
+    coverTargetKB: 300,
+    galleryTargetKB: 500,
+    startQuality: 0.84,
+    minQuality: 0.66,
+    mime: 'image/webp'
+  };
+
+  function injectCompressionStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+
+    style.textContent = `
+      .otbasu-compress-note {
+        margin-top: 8px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: rgba(123, 18, 79, .08);
+        color: #5b0d3c;
+        border: 1px solid rgba(123, 18, 79, .12);
+        font-size: 12px;
+        font-weight: 850;
+        line-height: 1.35;
+      }
+
+      .otbasu-compress-note.is-working {
+        background: rgba(255, 224, 186, .45);
+      }
+
+      .otbasu-compress-note.is-ok {
+        background: rgba(226, 255, 235, .78);
+        color: #0d5c2e;
+        border-color: rgba(13, 92, 46, .14);
+      }
+
+      .otbasu-compress-note.is-error {
+        background: rgba(255, 231, 231, .85);
+        color: #9c1028;
+        border-color: rgba(156, 16, 40, .16);
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  function bytesToText(bytes) {
+    if (!Number.isFinite(bytes)) return '0 KB';
+
+    if (bytes >= 1024 * 1024) {
+      return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    }
+
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+
+  function showCompressionNote(input, text, type = 'ok') {
+    injectCompressionStyles();
+
+    const parent = input.closest('.field, label, div') || input.parentElement;
+    if (!parent) return;
+
+    let note = parent.querySelector('.otbasu-compress-note');
+
+    if (!note) {
+      note = document.createElement('div');
+      note.className = 'otbasu-compress-note';
+      parent.appendChild(note);
+    }
+
+    note.className = `otbasu-compress-note is-${type}`;
+    note.textContent = text;
+  }
+
+  function getInputText(input) {
+    const labelText =
+      input.closest('label')?.textContent ||
+      document.querySelector(`label[for="${input.id}"]`)?.textContent ||
+      '';
+
+    return [
+      input.id,
+      input.name,
+      input.getAttribute('aria-label'),
+      input.getAttribute('placeholder'),
+      labelText,
+      input.parentElement?.textContent
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+  }
+
+  function isProductImageInput(input) {
+    if (!input || input.type !== 'file') return false;
+
+    const accept = String(input.accept || '').toLowerCase();
+    const text = getInputText(input);
+
+    const looksLikeImageInput =
+      accept.includes('image') ||
+      /image|photo|foto|фото|картин|изображ|главн|облож|gallery|галере/i.test(text);
+
+    const inProductArea =
+      input.closest('#productDialog') ||
+      input.closest('#productsPage') ||
+      input.closest('[id*="product"]') ||
+      input.closest('[class*="product"]');
+
+    return Boolean(looksLikeImageInput && inProductArea);
+  }
+
+  function isCoverInput(input) {
+    const text = getInputText(input);
+
+    return (
+      !input.multiple &&
+      /main|cover|облож|главн|preview|превью|основн/i.test(text)
+    );
+  }
+
+  function loadImageFromFile(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve(img);
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Не удалось открыть изображение'));
+      };
+
+      img.src = url;
+    });
+  }
+
+  function canvasToBlob(canvas, mime, quality) {
+    return new Promise((resolve) => {
+      canvas.toBlob(resolve, mime, quality);
+    });
+  }
+
+  function drawContain(ctx, img, canvasWidth, canvasHeight) {
+    const imageWidth = img.naturalWidth || img.width;
+    const imageHeight = img.naturalHeight || img.height;
+
+    const scale = Math.min(canvasWidth / imageWidth, canvasHeight / imageHeight);
+    const drawWidth = Math.round(imageWidth * scale);
+    const drawHeight = Math.round(imageHeight * scale);
+
+    const x = Math.round((canvasWidth - drawWidth) / 2);
+    const y = Math.round((canvasHeight - drawHeight) / 2);
+
+    ctx.drawImage(img, x, y, drawWidth, drawHeight);
+  }
+
+  function getGalleryCanvasSize(img) {
+    const width = img.naturalWidth || img.width;
+    const height = img.naturalHeight || img.height;
+    const maxSide = Math.max(width, height);
+
+    if (maxSide <= CONFIG.galleryMaxSide) {
+      return { width, height };
+    }
+
+    const ratio = CONFIG.galleryMaxSide / maxSide;
+
+    return {
+      width: Math.round(width * ratio),
+      height: Math.round(height * ratio)
+    };
+  }
+
+  async function exportCompressed(canvas, targetKB) {
+    let quality = CONFIG.startQuality;
+    let blob = null;
+
+    while (quality >= CONFIG.minQuality) {
+      blob = await canvasToBlob(canvas, CONFIG.mime, quality);
+
+      if (!blob) {
+        blob = await canvasToBlob(canvas, 'image/jpeg', quality);
+      }
+
+      if (!blob) break;
+
+      const sizeKB = blob.size / 1024;
+
+      if (sizeKB <= targetKB || quality <= CONFIG.minQuality) {
+        return blob;
+      }
+
+      quality -= 0.06;
+    }
+
+    return blob;
+  }
+
+  function makeFileName(originalName, suffix = 'compressed') {
+    const cleanName = String(originalName || 'image')
+      .replace(/\.[a-z0-9]+$/i, '')
+      .replace(/[^\wа-яА-ЯёЁ-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 60) || 'image';
+
+    return `${cleanName}-${suffix}.webp`;
+  }
+
+  async function compressImageFile(file, mode) {
+    const img = await loadImageFromFile(file);
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', {
+      alpha: mode !== 'cover',
+      willReadFrequently: false
+    });
+
+    if (!ctx) return file;
+
+    if (mode === 'cover') {
+      canvas.width = CONFIG.coverSize;
+      canvas.height = CONFIG.coverSize;
+
+      ctx.fillStyle = '#fff8ef';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      drawContain(ctx, img, canvas.width, canvas.height);
+
+      const blob = await exportCompressed(canvas, CONFIG.coverTargetKB);
+
+      if (!blob || blob.size >= file.size) {
+        return file;
+      }
+
+      return new File([blob], makeFileName(file.name, 'cover'), {
+        type: blob.type || CONFIG.mime,
+        lastModified: Date.now()
+      });
+    }
+
+    const size = getGalleryCanvasSize(img);
+
+    canvas.width = size.width;
+    canvas.height = size.height;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    const blob = await exportCompressed(canvas, CONFIG.galleryTargetKB);
+
+    if (!blob || blob.size >= file.size) {
+      return file;
+    }
+
+    return new File([blob], makeFileName(file.name, 'photo'), {
+      type: blob.type || CONFIG.mime,
+      lastModified: Date.now()
+    });
+  }
+
+  function replaceInputFiles(input, files) {
+    if (!window.DataTransfer) {
+      return false;
+    }
+
+    const dataTransfer = new DataTransfer();
+
+    files.forEach((file) => dataTransfer.items.add(file));
+
+    input.files = dataTransfer.files;
+
+    return true;
+  }
+
+  async function handleFileInputChange(event) {
+    const input = event.target;
+
+    if (!isProductImageInput(input)) return;
+
+    if (input.dataset.otbasuCompressedReady === 'true') {
+      delete input.dataset.otbasuCompressedReady;
+      return;
+    }
+
+    const files = Array.from(input.files || []);
+
+    if (!files.length) return;
+
+    const hasImages = files.some((file) => file.type.startsWith('image/'));
+
+    if (!hasImages) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    const beforeSize = files.reduce((sum, file) => sum + file.size, 0);
+    const coverMode = isCoverInput(input);
+
+    showCompressionNote(input, 'Сжимаю фото перед загрузкой…', 'working');
+
+    try {
+      const compressedFiles = [];
+
+      for (const file of files) {
+        if (!file.type.startsWith('image/')) {
+          compressedFiles.push(file);
+          continue;
+        }
+
+        const mode = coverMode ? 'cover' : 'gallery';
+        const compressed = await compressImageFile(file, mode);
+
+        compressedFiles.push(compressed);
+      }
+
+      const replaced = replaceInputFiles(input, compressedFiles);
+
+      if (!replaced) {
+        showCompressionNote(input, 'Фото выбраны, но браузер не разрешил автозамену файлов.', 'error');
+
+        input.dataset.otbasuCompressedReady = 'true';
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        return;
+      }
+
+      const afterSize = compressedFiles.reduce((sum, file) => sum + file.size, 0);
+      const savedPercent = beforeSize > 0
+        ? Math.max(0, Math.round((1 - afterSize / beforeSize) * 100))
+        : 0;
+
+      showCompressionNote(
+        input,
+        `Фото оптимизированы: ${bytesToText(beforeSize)} → ${bytesToText(afterSize)}. Экономия ${savedPercent}%.`,
+        'ok'
+      );
+
+      input.dataset.otbasuCompressedReady = 'true';
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    } catch (error) {
+      console.error('[OTBASU] Ошибка сжатия фото:', error);
+
+      showCompressionNote(input, 'Не удалось сжать фото. Сохранение продолжится с оригиналом.', 'error');
+
+      input.dataset.otbasuCompressedReady = 'true';
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }
+
+  function addStaticCompressionHint() {
+    injectCompressionStyles();
+
+    const inputs = Array.from(document.querySelectorAll('input[type="file"]'))
+      .filter(isProductImageInput);
+
+    inputs.forEach((input) => {
+      if (input.dataset.otbasuCompressHintAdded === 'true') return;
+
+      input.dataset.otbasuCompressHintAdded = 'true';
+
+      const parent = input.closest('.field, label, div') || input.parentElement;
+      if (!parent || parent.querySelector('.otbasu-compress-note')) return;
+
+      const note = document.createElement('div');
+      note.className = 'otbasu-compress-note';
+      note.textContent = isCoverInput(input)
+        ? 'Автосжатие включено: обложка будет 1080×1080 и легче для витрины.'
+        : 'Автосжатие включено: большие фото будут уменьшены и быстрее загрузятся.';
+
+      parent.appendChild(note);
+    });
+  }
+
+  injectCompressionStyles();
+
+  document.addEventListener('change', handleFileInputChange, true);
+
+  document.addEventListener('DOMContentLoaded', () => {
+    window.setTimeout(addStaticCompressionHint, 500);
+    window.setTimeout(addStaticCompressionHint, 1500);
+  });
+
+  document.addEventListener('click', () => {
+    window.setTimeout(addStaticCompressionHint, 300);
+    window.setTimeout(addStaticCompressionHint, 900);
+  });
+
+  window.setTimeout(addStaticCompressionHint, 800);
+})();
