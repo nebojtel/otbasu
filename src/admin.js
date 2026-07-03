@@ -851,8 +851,9 @@ function renderImageDraft() {
         return;
       }
 
-      const rect = card.getBoundingClientRect();
-      const placeAfter = event.clientX > rect.left + rect.width / 2;
+      const from = imageDraft.findIndex((item) => item.id === draggedImageId);
+      const to = imageDraft.findIndex((item) => item.id === targetId);
+      const placeAfter = from < to;
 
       if (moveImageDraft(draggedImageId, targetId, placeAfter)) {
         renderImageDraft();
@@ -874,8 +875,9 @@ function renderImageDraft() {
 
       if (!draggedImageId || !targetId || draggedImageId === targetId) return;
 
-      const rect = card.getBoundingClientRect();
-      const placeAfter = event.clientX > rect.left + rect.width / 2;
+      const from = imageDraft.findIndex((item) => item.id === draggedImageId);
+      const to = imageDraft.findIndex((item) => item.id === targetId);
+      const placeAfter = from < to;
 
       const moved = moveImageDraft(draggedImageId, targetId, placeAfter);
       draggedImageId = null;
@@ -1481,8 +1483,8 @@ function injectAdminUiFixes() {
     }
 
     #productDialog {
-      width: min(1240px, calc(100vw - 32px)) !important;
-      max-width: 1240px !important;
+      width: min(1320px, calc(100vw - 32px)) !important;
+      max-width: 1320px !important;
       max-height: calc(100vh - 28px) !important;
       border: 0 !important;
       border-radius: 30px !important;
@@ -1576,8 +1578,8 @@ function injectAdminUiFixes() {
     #productDialog .product-form-grid {
       min-height: 0 !important;
       display: grid !important;
-      grid-template-columns: minmax(0, 1.05fr) minmax(460px, .9fr) !important;
-      gap: 24px !important;
+      grid-template-columns: minmax(0, .98fr) minmax(560px, 1fr) !important;
+      gap: 22px !important;
       overflow: hidden !important;
     }
 
@@ -1621,18 +1623,19 @@ function injectAdminUiFixes() {
 
     #productDialog .image-box {
       display: grid !important;
-      grid-template-rows: 238px auto auto auto auto !important;
-      gap: 10px !important;
+      grid-template-rows: 180px auto auto auto auto !important;
+      gap: 9px !important;
       align-content: start !important;
     }
 
     #imagePreview {
       position: relative !important;
-      width: 100% !important;
-      height: 238px !important;
-      min-height: 238px !important;
-      max-height: 238px !important;
-      border-radius: 22px !important;
+      width: min(100%, 440px) !important;
+      justify-self: center !important;
+      height: 180px !important;
+      min-height: 180px !important;
+      max-height: 180px !important;
+      border-radius: 20px !important;
       border: 1px solid rgba(123, 18, 79, .16) !important;
       display: grid !important;
       place-items: center !important;
@@ -1652,7 +1655,7 @@ function injectAdminUiFixes() {
       object-fit: contain !important;
       object-position: center !important;
       display: block !important;
-      padding: 8px !important;
+      padding: 10px !important;
       box-sizing: border-box !important;
     }
 
@@ -1678,13 +1681,15 @@ function injectAdminUiFixes() {
     }
 
     #productDialog .gallery-manager {
-      min-height: 188px !important;
-      padding: 12px !important;
-      border-radius: 20px !important;
-      overflow: visible !important;
-      background: linear-gradient(180deg, rgba(255,255,255,.82), rgba(255,248,239,.74)) !important;
-      border: 1px solid rgba(123, 18, 79, .12) !important;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.78) !important;
+      min-height: 244px !important;
+      padding: 14px !important;
+      border-radius: 22px !important;
+      overflow: hidden !important;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,248,239,.82)),
+        linear-gradient(135deg, rgba(242,169,0,.08), rgba(123,18,79,.04)) !important;
+      border: 1px solid rgba(242, 169, 0, .3) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.86), 0 16px 36px rgba(50, 8, 34, .08) !important;
     }
 
     #productDialog .gallery-head {
@@ -1709,20 +1714,20 @@ function injectAdminUiFixes() {
 
     #imageGalleryList {
       display: grid !important;
-      grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-      gap: 6px !important;
-      min-height: 148px !important;
+      grid-template-columns: repeat(5, minmax(96px, 1fr)) !important;
+      gap: 10px !important;
+      min-height: 184px !important;
       max-height: none !important;
-      overflow: visible !important;
-      padding: 1px !important;
+      overflow: hidden !important;
+      padding: 2px !important;
       margin-top: 0 !important;
     }
 
     #imageGalleryList .gallery-slot,
     #imageGalleryList .gallery-item {
       position: relative !important;
-      min-height: 146px !important;
-      border-radius: 15px !important;
+      min-height: 182px !important;
+      border-radius: 18px !important;
       overflow: hidden !important;
       box-sizing: border-box !important;
     }
@@ -1752,13 +1757,13 @@ function injectAdminUiFixes() {
       border: 1px solid rgba(123, 18, 79, .14) !important;
       box-shadow: 0 12px 26px rgba(50, 8, 34, .1) !important;
       display: grid !important;
-      grid-template-rows: minmax(0, 1fr) auto !important;
-      transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease !important;
+      grid-template-rows: 34px minmax(0, 1fr) 34px !important;
+      transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease, opacity 150ms ease !important;
     }
 
     #imageGalleryList .gallery-item:hover,
     #imageGalleryList .gallery-item.is-drop-target {
-      transform: translateY(-2px) !important;
+      transform: translateY(-3px) !important;
       border-color: rgba(123, 18, 79, .34) !important;
       box-shadow: 0 18px 34px rgba(50, 8, 34, .16) !important;
     }
@@ -1768,8 +1773,9 @@ function injectAdminUiFixes() {
     }
 
     #imageGalleryList .gallery-item.dragging {
-      opacity: .55 !important;
-      transform: scale(.98) !important;
+      opacity: .4 !important;
+      transform: scale(.96) !important;
+      border-style: dashed !important;
     }
 
     #imageGalleryList .gallery-item.is-cover {
@@ -1778,7 +1784,8 @@ function injectAdminUiFixes() {
     }
 
     #imageGalleryList .gallery-image-wrap {
-      height: 112px !important;
+      min-height: 0 !important;
+      height: 100% !important;
       overflow: hidden !important;
       background:
         linear-gradient(135deg, rgba(255,255,255,.58), rgba(255,248,239,.86)),
@@ -1791,19 +1798,19 @@ function injectAdminUiFixes() {
       object-fit: contain !important;
       object-position: center !important;
       display: block !important;
-      padding: 3px !important;
+      padding: 2px 4px 4px !important;
       box-sizing: border-box !important;
     }
 
     #imageGalleryList .gallery-item.is-cover img {
       object-fit: contain !important;
-      padding: 3px !important;
+      padding: 2px 4px 4px !important;
       box-sizing: border-box !important;
     }
 
     #imageGalleryList .gallery-item-meta {
       min-height: 34px !important;
-      padding: 6px 7px !important;
+      padding: 6px 8px !important;
       display: grid !important;
       place-items: center !important;
       gap: 0 !important;
@@ -1825,19 +1832,33 @@ function injectAdminUiFixes() {
     }
 
     .gallery-controls {
-      position: absolute !important;
+      position: static !important;
       z-index: 4 !important;
-      top: 6px !important;
-      left: 6px !important;
-      right: 6px !important;
-      display: flex !important;
+      height: 34px !important;
+      padding: 6px 6px 0 !important;
+      display: grid !important;
+      grid-template-columns: 24px minmax(0, 1fr) auto !important;
       align-items: center !important;
-      justify-content: space-between !important;
-      gap: 4px !important;
+      gap: 6px !important;
       pointer-events: none !important;
+      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.62)) !important;
+    }
+
+    .gallery-controls::after {
+      content: '⋮⋮' !important;
+      grid-column: 2 !important;
+      grid-row: 1 !important;
+      justify-self: center !important;
+      color: rgba(77, 10, 51, .34) !important;
+      font-size: 15px !important;
+      line-height: 1 !important;
+      letter-spacing: 0 !important;
     }
 
     .gallery-actions {
+      grid-column: 3 !important;
+      grid-row: 1 !important;
+      justify-self: end !important;
       display: flex !important;
       align-items: center !important;
       gap: 3px !important;
@@ -1864,6 +1885,8 @@ function injectAdminUiFixes() {
     }
 
     .gallery-order {
+      grid-column: 1 !important;
+      grid-row: 1 !important;
       color: #4d0a33 !important;
       font-size: 11px !important;
       font-weight: 950 !important;
@@ -1932,10 +1955,23 @@ function injectAdminUiFixes() {
         gap: 18px !important;
       }
 
+      #productDialog .image-box {
+        grid-template-rows: 168px auto auto auto auto !important;
+      }
+
       #imagePreview {
-        height: 220px !important;
-        min-height: 220px !important;
-        max-height: 220px !important;
+        height: 168px !important;
+        min-height: 168px !important;
+        max-height: 168px !important;
+      }
+
+      #imageGalleryList {
+        grid-template-columns: repeat(5, minmax(72px, 1fr)) !important;
+      }
+
+      #imageGalleryList .gallery-slot,
+      #imageGalleryList .gallery-item {
+        min-height: 164px !important;
       }
     }
 
