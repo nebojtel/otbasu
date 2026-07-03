@@ -783,7 +783,6 @@ function renderImageDraft() {
   const photoHtml = photos.map((item, index) => {
     const itemSrc = imageItemSource(item);
     const label = index === 0 ? 'Обложка' : `Фото ${index + 1}`;
-    const sourceLabel = item.type === 'file' ? 'файл' : 'URL';
 
     return `
       <div class="gallery-item ${index === 0 ? 'is-cover' : ''}" draggable="true" data-image-id="${escapeHtml(item.id)}">
@@ -799,7 +798,7 @@ function renderImageDraft() {
         </div>
         <div class="gallery-item-meta">
           <strong>${escapeHtml(label)}</strong>
-          <span>${escapeHtml(sourceLabel)} · перетащи</span>
+          <span class="gallery-drag-handle" title="Перетащить фото">⋮⋮</span>
         </div>
       </div>
     `;
@@ -1623,18 +1622,18 @@ function injectAdminUiFixes() {
 
     #productDialog .image-box {
       display: grid !important;
-      grid-template-rows: 180px auto auto auto auto !important;
-      gap: 9px !important;
+      grid-template-rows: 168px auto auto auto auto !important;
+      gap: 8px !important;
       align-content: start !important;
     }
 
     #imagePreview {
       position: relative !important;
-      width: min(100%, 440px) !important;
+      width: min(238px, 100%) !important;
       justify-self: center !important;
-      height: 180px !important;
-      min-height: 180px !important;
-      max-height: 180px !important;
+      height: 168px !important;
+      min-height: 168px !important;
+      max-height: 168px !important;
       border-radius: 20px !important;
       border: 1px solid rgba(123, 18, 79, .16) !important;
       display: grid !important;
@@ -1650,8 +1649,10 @@ function injectAdminUiFixes() {
     }
 
     #imagePreview img {
-      width: 100% !important;
-      height: 100% !important;
+      width: auto !important;
+      height: auto !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
       object-fit: contain !important;
       object-position: center !important;
       display: block !important;
@@ -1681,7 +1682,7 @@ function injectAdminUiFixes() {
     }
 
     #productDialog .gallery-manager {
-      min-height: 244px !important;
+      min-height: 236px !important;
       padding: 14px !important;
       border-radius: 22px !important;
       overflow: hidden !important;
@@ -1716,7 +1717,7 @@ function injectAdminUiFixes() {
       display: grid !important;
       grid-template-columns: repeat(5, minmax(96px, 1fr)) !important;
       gap: 10px !important;
-      min-height: 184px !important;
+      min-height: 174px !important;
       max-height: none !important;
       overflow: hidden !important;
       padding: 2px !important;
@@ -1726,7 +1727,7 @@ function injectAdminUiFixes() {
     #imageGalleryList .gallery-slot,
     #imageGalleryList .gallery-item {
       position: relative !important;
-      min-height: 182px !important;
+      min-height: 172px !important;
       border-radius: 18px !important;
       overflow: hidden !important;
       box-sizing: border-box !important;
@@ -1757,8 +1758,9 @@ function injectAdminUiFixes() {
       border: 1px solid rgba(123, 18, 79, .14) !important;
       box-shadow: 0 12px 26px rgba(50, 8, 34, .1) !important;
       display: grid !important;
-      grid-template-rows: 34px minmax(0, 1fr) 34px !important;
-      transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease, opacity 150ms ease !important;
+      grid-template-rows: 32px minmax(0, 1fr) 36px !important;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, opacity 180ms ease !important;
+      animation: galleryCardSettle 170ms ease both !important;
     }
 
     #imageGalleryList .gallery-item:hover,
@@ -1787,33 +1789,38 @@ function injectAdminUiFixes() {
       min-height: 0 !important;
       height: 100% !important;
       overflow: hidden !important;
+      display: grid !important;
+      place-items: center !important;
       background:
         linear-gradient(135deg, rgba(255,255,255,.58), rgba(255,248,239,.86)),
         repeating-linear-gradient(45deg, rgba(123,18,79,.04) 0 8px, rgba(242,169,0,.045) 8px 16px) !important;
     }
 
     #imageGalleryList .gallery-item img {
-      width: 100% !important;
-      height: 100% !important;
+      width: auto !important;
+      height: auto !important;
+      max-width: calc(100% - 8px) !important;
+      max-height: calc(100% - 6px) !important;
       object-fit: contain !important;
       object-position: center !important;
       display: block !important;
-      padding: 2px 4px 4px !important;
+      padding: 0 !important;
       box-sizing: border-box !important;
     }
 
     #imageGalleryList .gallery-item.is-cover img {
       object-fit: contain !important;
-      padding: 2px 4px 4px !important;
+      padding: 0 !important;
       box-sizing: border-box !important;
     }
 
     #imageGalleryList .gallery-item-meta {
-      min-height: 34px !important;
-      padding: 6px 8px !important;
+      min-height: 36px !important;
+      padding: 6px 7px !important;
       display: grid !important;
-      place-items: center !important;
-      gap: 0 !important;
+      grid-template-columns: minmax(0, 1fr) 34px !important;
+      align-items: center !important;
+      gap: 6px !important;
       background: rgba(255,255,255,.9) !important;
     }
 
@@ -1828,13 +1835,14 @@ function injectAdminUiFixes() {
     }
 
     #imageGalleryList .gallery-item-meta span {
-      display: none !important;
+      display: grid !important;
+      place-items: center !important;
     }
 
     .gallery-controls {
       position: static !important;
       z-index: 4 !important;
-      height: 34px !important;
+      height: 32px !important;
       padding: 6px 6px 0 !important;
       display: grid !important;
       grid-template-columns: 24px minmax(0, 1fr) auto !important;
@@ -1845,14 +1853,8 @@ function injectAdminUiFixes() {
     }
 
     .gallery-controls::after {
-      content: '⋮⋮' !important;
-      grid-column: 2 !important;
-      grid-row: 1 !important;
-      justify-self: center !important;
-      color: rgba(77, 10, 51, .34) !important;
-      font-size: 15px !important;
-      line-height: 1 !important;
-      letter-spacing: 0 !important;
+      content: '' !important;
+      display: none !important;
     }
 
     .gallery-actions {
@@ -1911,19 +1913,56 @@ function injectAdminUiFixes() {
       color: #fff !important;
     }
 
+    .gallery-drag-handle {
+      width: 34px !important;
+      height: 24px !important;
+      border-radius: 999px !important;
+      display: grid !important;
+      place-items: center !important;
+      justify-self: end !important;
+      background: rgba(77, 10, 51, .08) !important;
+      color: rgba(77, 10, 51, .56) !important;
+      font-size: 14px !important;
+      line-height: 1 !important;
+      letter-spacing: 0 !important;
+      cursor: grab !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.7) !important;
+    }
+
+    .gallery-drag-handle:active {
+      cursor: grabbing !important;
+      transform: scale(.96) !important;
+    }
+
+    @keyframes galleryCardSettle {
+      from {
+        opacity: .82;
+        transform: translateX(8px) scale(.99);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+    }
+
     #productDialog .muted.small {
+      margin: 0 !important;
+      padding: 8px 10px !important;
+      border-radius: 14px !important;
+      border: 1px solid rgba(123, 18, 79, .1) !important;
+      background: rgba(255, 255, 255, .58) !important;
       font-size: 0 !important;
       line-height: 0 !important;
-      margin: 0 !important;
+      overflow: visible !important;
     }
 
     #productDialog .muted.small::after {
-      content: 'До 5 фото. Цифра — порядок на витрине, ★ — обложка. Перетащи карточку мышкой, чтобы изменить порядок.';
+      content: 'До 5 фото. ★ — обложка. Перетащи карточку за нижнюю ручку ⋮⋮, чтобы изменить порядок.';
       display: block !important;
-      font-size: 12px !important;
-      line-height: 1.3 !important;
+      font-size: 11px !important;
+      line-height: 1.25 !important;
       color: rgba(77, 10, 51, .62) !important;
-      margin-top: 4px !important;
+      margin: 0 !important;
       font-weight: 800 !important;
     }
 
