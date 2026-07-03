@@ -1792,6 +1792,7 @@ function injectAdminUiFixes() {
       border: 1px solid rgba(123, 18, 79, .14) !important;
       box-shadow: 0 12px 26px rgba(50, 8, 34, .1) !important;
       display: grid !important;
+      grid-template-columns: minmax(0, 1fr) !important;
       grid-template-rows: 32px 104px 36px !important;
       transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, opacity 180ms ease !important;
       animation: galleryCardSettle 170ms ease both !important;
@@ -1826,10 +1827,13 @@ function injectAdminUiFixes() {
       min-height: 104px !important;
       max-height: 104px !important;
       max-width: 100% !important;
-      max-height: 100% !important;
       object-fit: contain !important;
       object-position: center !important;
       display: block !important;
+      grid-column: 1 / -1 !important;
+      grid-row: 2 !important;
+      align-self: stretch !important;
+      justify-self: stretch !important;
       padding: 4px !important;
       box-sizing: border-box !important;
       background:
@@ -1847,6 +1851,8 @@ function injectAdminUiFixes() {
       min-height: 36px !important;
       padding: 6px 7px !important;
       display: grid !important;
+      grid-column: 1 / -1 !important;
+      grid-row: 3 !important;
       grid-template-columns: minmax(0, 1fr) 34px !important;
       align-items: center !important;
       gap: 6px !important;
@@ -1874,6 +1880,8 @@ function injectAdminUiFixes() {
       height: 32px !important;
       padding: 6px 6px 0 !important;
       display: grid !important;
+      grid-column: 1 / -1 !important;
+      grid-row: 1 !important;
       grid-template-columns: 24px minmax(0, 1fr) auto !important;
       align-items: center !important;
       gap: 6px !important;
