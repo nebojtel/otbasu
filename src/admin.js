@@ -787,9 +787,13 @@ function renderImageDraft() {
 
     return `
       <div class="gallery-item ${index === 0 ? 'is-cover' : ''}" draggable="true" data-image-id="${escapeHtml(item.id)}">
-        <span class="gallery-order">${index + 1}</span>
-        <button type="button" class="gallery-star" data-image-cover="${escapeHtml(item.id)}" title="Сделать обложкой" aria-label="Сделать фото ${index + 1} обложкой">${index === 0 ? '★' : '☆'}</button>
-        <button type="button" class="gallery-remove" data-image-remove="${escapeHtml(item.id)}" title="Удалить" aria-label="Удалить фото ${index + 1}">×</button>
+        <div class="gallery-controls">
+          <span class="gallery-order">${index + 1}</span>
+          <span class="gallery-actions">
+            <button type="button" class="gallery-star" data-image-cover="${escapeHtml(item.id)}" title="Сделать обложкой" aria-label="Сделать фото ${index + 1} обложкой">${index === 0 ? '★' : '☆'}</button>
+            <button type="button" class="gallery-remove" data-image-remove="${escapeHtml(item.id)}" title="Удалить" aria-label="Удалить фото ${index + 1}">×</button>
+          </span>
+        </div>
         <div class="gallery-image-wrap">
           <img src="${escapeHtml(itemSrc)}" alt="${escapeHtml(label)}">
         </div>
@@ -824,19 +828,37 @@ function renderImageDraft() {
       draggedImageId = card.dataset.imageId;
       card.classList.add('dragging');
       event.dataTransfer?.setData('text/plain', draggedImageId || '');
+      if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer?.setDragImage(card, card.offsetWidth / 2, 24);
     });
 
     card.addEventListener('dragend', () => {
       draggedImageId = null;
-      card.classList.remove('dragging');
-      els.imageGalleryList?.querySelectorAll('.is-drop-target').forEach((item) => {
+      els.imageGalleryList?.querySelectorAll('.dragging, .is-drop-target').forEach((item) => {
+        item.classList.remove('dragging');
         item.classList.remove('is-drop-target');
       });
     });
 
     card.addEventListener('dragover', (event) => {
       event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+
+      const targetId = card.dataset.imageId;
+
+      if (!draggedImageId || !targetId || draggedImageId === targetId) {
+        card.classList.add('is-drop-target');
+        return;
+      }
+
+      const rect = card.getBoundingClientRect();
+      const placeAfter = event.clientX > rect.left + rect.width / 2;
+
+      if (moveImageDraft(draggedImageId, targetId, placeAfter)) {
+        renderImageDraft();
+        return;
+      }
+
       card.classList.add('is-drop-target');
     });
 
@@ -852,17 +874,28 @@ function renderImageDraft() {
 
       if (!draggedImageId || !targetId || draggedImageId === targetId) return;
 
-      const from = imageDraft.findIndex((item) => item.id === draggedImageId);
-      const to = imageDraft.findIndex((item) => item.id === targetId);
+      const rect = card.getBoundingClientRect();
+      const placeAfter = event.clientX > rect.left + rect.width / 2;
 
-      if (from < 0 || to < 0) return;
+      const moved = moveImageDraft(draggedImageId, targetId, placeAfter);
+      draggedImageId = null;
 
-      const [moved] = imageDraft.splice(from, 1);
-      imageDraft.splice(to, 0, moved);
-
-      renderImageDraft();
+      if (moved) {
+        renderImageDraft();
+      } else {
+        els.imageGalleryList?.querySelectorAll('.dragging, .is-drop-target').forEach((item) => {
+          item.classList.remove('dragging');
+          item.classList.remove('is-drop-target');
+        });
+      }
     });
   });
+
+  if (draggedImageId) {
+    Array.from(els.imageGalleryList.querySelectorAll('.gallery-item[data-image-id]'))
+      .find((item) => item.dataset.imageId === draggedImageId)
+      ?.classList.add('dragging');
+  }
 }
 
 function makeCoverImage(imageId) {
@@ -881,6 +914,25 @@ function removeImage(imageId) {
   releaseImagePreview(removed);
   imageDraft = imageDraft.filter((item) => item.id !== imageId);
   renderImageDraft();
+}
+
+function moveImageDraft(draggedId, targetId, placeAfter = false) {
+  const from = imageDraft.findIndex((item) => item.id === draggedId);
+  const to = imageDraft.findIndex((item) => item.id === targetId);
+
+  if (from < 0 || to < 0 || from === to) return false;
+
+  let insertAt = to;
+
+  if (from < to) insertAt -= 1;
+  if (placeAfter) insertAt += 1;
+
+  if (insertAt === from) return false;
+
+  const [moved] = imageDraft.splice(from, 1);
+  imageDraft.splice(insertAt, 0, moved);
+
+  return true;
 }
 
 function addUrlImage() {
@@ -1626,7 +1678,7 @@ function injectAdminUiFixes() {
     }
 
     #productDialog .gallery-manager {
-      min-height: 180px !important;
+      min-height: 188px !important;
       padding: 12px !important;
       border-radius: 20px !important;
       overflow: visible !important;
@@ -1658,19 +1710,19 @@ function injectAdminUiFixes() {
     #imageGalleryList {
       display: grid !important;
       grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-      gap: 8px !important;
-      min-height: 134px !important;
+      gap: 6px !important;
+      min-height: 148px !important;
       max-height: none !important;
       overflow: visible !important;
-      padding: 2px !important;
+      padding: 1px !important;
       margin-top: 0 !important;
     }
 
     #imageGalleryList .gallery-slot,
     #imageGalleryList .gallery-item {
       position: relative !important;
-      min-height: 132px !important;
-      border-radius: 16px !important;
+      min-height: 146px !important;
+      border-radius: 15px !important;
       overflow: hidden !important;
       box-sizing: border-box !important;
     }
@@ -1699,6 +1751,8 @@ function injectAdminUiFixes() {
       background: #fff !important;
       border: 1px solid rgba(123, 18, 79, .14) !important;
       box-shadow: 0 12px 26px rgba(50, 8, 34, .1) !important;
+      display: grid !important;
+      grid-template-rows: minmax(0, 1fr) auto !important;
       transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease !important;
     }
 
@@ -1724,7 +1778,7 @@ function injectAdminUiFixes() {
     }
 
     #imageGalleryList .gallery-image-wrap {
-      height: 88px !important;
+      height: 112px !important;
       overflow: hidden !important;
       background:
         linear-gradient(135deg, rgba(255,255,255,.58), rgba(255,248,239,.86)),
@@ -1737,21 +1791,22 @@ function injectAdminUiFixes() {
       object-fit: contain !important;
       object-position: center !important;
       display: block !important;
-      padding: 5px !important;
+      padding: 3px !important;
       box-sizing: border-box !important;
     }
 
     #imageGalleryList .gallery-item.is-cover img {
       object-fit: contain !important;
-      padding: 5px !important;
+      padding: 3px !important;
       box-sizing: border-box !important;
     }
 
     #imageGalleryList .gallery-item-meta {
-      min-height: 42px !important;
-      padding: 7px 8px !important;
+      min-height: 34px !important;
+      padding: 6px 7px !important;
       display: grid !important;
-      gap: 2px !important;
+      place-items: center !important;
+      gap: 0 !important;
       background: rgba(255,255,255,.9) !important;
     }
 
@@ -1766,24 +1821,38 @@ function injectAdminUiFixes() {
     }
 
     #imageGalleryList .gallery-item-meta span {
-      font-size: 10px !important;
-      line-height: 1.15 !important;
-      color: rgba(77, 10, 51, .6) !important;
-      white-space: nowrap !important;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
+      display: none !important;
+    }
+
+    .gallery-controls {
+      position: absolute !important;
+      z-index: 4 !important;
+      top: 6px !important;
+      left: 6px !important;
+      right: 6px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 4px !important;
+      pointer-events: none !important;
+    }
+
+    .gallery-actions {
+      display: flex !important;
+      align-items: center !important;
+      gap: 3px !important;
+      pointer-events: auto !important;
     }
 
     .gallery-order,
     .gallery-star,
     .gallery-remove {
-      position: absolute !important;
+      position: static !important;
       z-index: 3 !important;
-      top: 7px !important;
-      width: 26px !important;
-      height: 26px !important;
-      min-width: 26px !important;
-      min-height: 26px !important;
+      width: 23px !important;
+      height: 23px !important;
+      min-width: 23px !important;
+      min-height: 23px !important;
       padding: 0 !important;
       border-radius: 999px !important;
       display: grid !important;
@@ -1795,24 +1864,22 @@ function injectAdminUiFixes() {
     }
 
     .gallery-order {
-      left: 7px !important;
       color: #4d0a33 !important;
-      font-size: 12px !important;
+      font-size: 11px !important;
       font-weight: 950 !important;
+      pointer-events: none !important;
     }
 
     .gallery-star {
-      left: 38px !important;
       color: #f2a900 !important;
       cursor: pointer !important;
-      font-size: 15px !important;
+      font-size: 14px !important;
     }
 
     .gallery-remove {
-      right: 7px !important;
       color: #991b1b !important;
       cursor: pointer !important;
-      font-size: 17px !important;
+      font-size: 16px !important;
     }
 
     .gallery-item.is-cover .gallery-order,
