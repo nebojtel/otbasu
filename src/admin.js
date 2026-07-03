@@ -2298,3 +2298,407 @@ requireSession();
 
   window.setTimeout(hideOldButtonAndPrepareDialog, 300);
 })();
+/* OTBASU PRODUCT DIALOG BIG MODERN VIEW
+   Увеличивает окно карточки товара и делает фото заметными.
+   Трогает только модальное окно добавления/редактирования товара.
+   Витрину не трогает.
+*/
+(() => {
+  if (window.__OTBASU_PRODUCT_DIALOG_BIG_MODERN_VIEW__) return;
+  window.__OTBASU_PRODUCT_DIALOG_BIG_MODERN_VIEW__ = true;
+
+  const style = document.createElement('style');
+  style.id = 'otbasu-product-dialog-big-modern-view';
+
+  style.textContent = `
+    /* Убираем лишнее только внутри карточки товара */
+    #otbasuPhotoSizeHint,
+    .otbasu-photo-size-hint,
+    .otbasu-compress-note,
+    #addImageUrlButton,
+    label:has(input[name="sort"]) {
+      display: none !important;
+    }
+
+    /* Больше само окно */
+    #productDialog {
+      width: min(1220px, calc(100vw - 32px)) !important;
+      max-width: 1220px !important;
+      max-height: calc(100vh - 28px) !important;
+      border: 0 !important;
+      border-radius: 34px !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      background: rgba(255, 248, 239, .985) !important;
+      box-shadow: 0 34px 100px rgba(29, 3, 19, .42) !important;
+    }
+
+    #productDialog::backdrop {
+      background: rgba(21, 3, 15, .72) !important;
+      backdrop-filter: blur(14px) !important;
+      -webkit-backdrop-filter: blur(14px) !important;
+    }
+
+    /* Внутренний каркас окна */
+    #productDialog .dialog-card,
+    #productDialog form {
+      height: min(820px, calc(100vh - 28px)) !important;
+      max-height: calc(100vh - 28px) !important;
+      padding: 24px 28px !important;
+      display: grid !important;
+      grid-template-rows: auto minmax(0, 1fr) auto !important;
+      gap: 18px !important;
+      overflow: hidden !important;
+      box-sizing: border-box !important;
+    }
+
+    #productDialog .panel-heading {
+      margin: 0 !important;
+      align-items: start !important;
+    }
+
+    #productDialog .panel-heading h2 {
+      font-size: 34px !important;
+      line-height: 1.02 !important;
+      margin: 0 !important;
+      letter-spacing: -.02em !important;
+    }
+
+    #productDialog .eyebrow {
+      font-size: 12px !important;
+      margin: 0 0 6px !important;
+      letter-spacing: .08em !important;
+      font-weight: 950 !important;
+    }
+
+    /* Две колонки: слева поля, справа фото */
+    #productDialog .product-form-grid {
+      min-height: 0 !important;
+      display: grid !important;
+      grid-template-columns: minmax(0, 1.1fr) minmax(500px, .95fr) !important;
+      gap: 24px !important;
+      overflow: hidden !important;
+    }
+
+    #productDialog .form-stack,
+    #productDialog .image-box {
+      min-height: 0 !important;
+      overflow: hidden !important;
+    }
+
+    #productDialog .form-stack {
+      gap: 12px !important;
+    }
+
+    #productDialog .two-col {
+      gap: 12px !important;
+    }
+
+    #productDialog label {
+      font-size: 12px !important;
+      gap: 6px !important;
+      line-height: 1.25 !important;
+      font-weight: 900 !important;
+    }
+
+    #productDialog input,
+    #productDialog select,
+    #productDialog textarea {
+      height: 44px !important;
+      min-height: 44px !important;
+      padding: 11px 16px !important;
+      font-size: 14px !important;
+      border-radius: 16px !important;
+      box-sizing: border-box !important;
+    }
+
+    #productDialog textarea {
+      height: 74px !important;
+      min-height: 74px !important;
+      resize: none !important;
+    }
+
+    /* Правая часть с фото */
+    #productDialog .image-box {
+      display: grid !important;
+      grid-template-rows: auto auto auto minmax(0, 1fr) auto !important;
+      gap: 11px !important;
+      align-content: start !important;
+    }
+
+    /* Главное фото крупнее */
+    #imagePreview {
+      width: 100% !important;
+      height: 285px !important;
+      min-height: 285px !important;
+      max-height: 285px !important;
+      border-radius: 26px !important;
+      border: 1px dashed rgba(123, 18, 79, .26) !important;
+      display: grid !important;
+      place-items: center !important;
+      overflow: hidden !important;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255, 224, 186, .6), transparent 48%),
+        rgba(255, 255, 255, .78) !important;
+      color: rgba(77, 10, 51, .42) !important;
+      font-size: 17px !important;
+      font-weight: 950 !important;
+    }
+
+    #imagePreview img {
+      width: 100% !important;
+      height: 285px !important;
+      object-fit: contain !important;
+      object-position: center !important;
+      display: block !important;
+      background: #fff8ef !important;
+    }
+
+    /* Поле URL компактно */
+    #productDialog label:has(input[name="imageUrl"]) {
+      margin-top: 0 !important;
+    }
+
+    /* Блок фотографий товара */
+    #productDialog .gallery-manager {
+      padding: 14px !important;
+      border-radius: 24px !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,248,239,.78)) !important;
+      border: 1px solid rgba(123, 18, 79, .12) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.7) !important;
+    }
+
+    #productDialog .gallery-head {
+      margin: 0 0 12px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 10px !important;
+    }
+
+    #productDialog .gallery-head strong {
+      font-size: 14px !important;
+      font-weight: 950 !important;
+      color: #4d0a33 !important;
+    }
+
+    #productDialog .gallery-head span {
+      font-size: 12px !important;
+      font-weight: 900 !important;
+      color: rgba(77, 10, 51, .62) !important;
+    }
+
+    /* 5 фото крупнее, чтобы реально было видно */
+    #imageGalleryList {
+      display: grid !important;
+      grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+      gap: 10px !important;
+      max-height: 205px !important;
+      overflow: hidden !important;
+      margin-top: 0 !important;
+      padding-bottom: 2px !important;
+    }
+
+    #imageGalleryList .gallery-slot,
+    #imageGalleryList .gallery-item {
+      position: relative !important;
+      height: 195px !important;
+      min-height: 195px !important;
+      border-radius: 20px !important;
+      overflow: hidden !important;
+      background: rgba(255, 255, 255, .92) !important;
+      border: 1px solid rgba(123, 18, 79, .14) !important;
+      box-shadow: 0 12px 26px rgba(50, 8, 34, .09) !important;
+      box-sizing: border-box !important;
+    }
+
+    #imageGalleryList .gallery-slot {
+      display: grid !important;
+      place-items: center !important;
+      color: rgba(77, 10, 51, .3) !important;
+      font-size: 22px !important;
+      font-weight: 950 !important;
+      border-style: dashed !important;
+      box-shadow: none !important;
+      background: rgba(255,255,255,.48) !important;
+    }
+
+    #imageGalleryList .gallery-item {
+      cursor: grab !important;
+      transition:
+        transform 150ms ease,
+        box-shadow 150ms ease,
+        border-color 150ms ease !important;
+    }
+
+    #imageGalleryList .gallery-item:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 18px 34px rgba(50, 8, 34, .14) !important;
+    }
+
+    #imageGalleryList .gallery-item:active {
+      cursor: grabbing !important;
+    }
+
+    #imageGalleryList .gallery-item.dragging {
+      opacity: .55 !important;
+      transform: scale(.98) !important;
+    }
+
+    #imageGalleryList .gallery-item.is-cover {
+      border: 2px solid #f2a900 !important;
+      box-shadow: 0 18px 36px rgba(242, 169, 0, .22) !important;
+    }
+
+    #imageGalleryList .gallery-item img {
+      width: 100% !important;
+      height: 142px !important;
+      object-fit: contain !important;
+      object-position: center !important;
+      display: block !important;
+      padding: 8px !important;
+      box-sizing: border-box !important;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255, 224, 186, .38), transparent 45%),
+        #fff8ef !important;
+    }
+
+    #imageGalleryList .gallery-item-meta {
+      padding: 8px 9px !important;
+      display: grid !important;
+      gap: 2px !important;
+      background: rgba(255,255,255,.82) !important;
+    }
+
+    #imageGalleryList .gallery-item-meta strong {
+      font-size: 12px !important;
+      line-height: 1.1 !important;
+      color: #4d0a33 !important;
+      font-weight: 950 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+
+    #imageGalleryList .gallery-item-meta span {
+      display: none !important;
+    }
+
+    .gallery-star,
+    .gallery-remove {
+      position: absolute !important;
+      z-index: 3 !important;
+      top: 8px !important;
+      width: 32px !important;
+      height: 32px !important;
+      min-width: 32px !important;
+      min-height: 32px !important;
+      max-width: 32px !important;
+      max-height: 32px !important;
+      padding: 0 !important;
+      border-radius: 999px !important;
+      display: grid !important;
+      place-items: center !important;
+      border: 0 !important;
+      background: white !important;
+      box-shadow: 0 9px 20px rgba(0,0,0,.16) !important;
+      cursor: pointer !important;
+      font-size: 17px !important;
+      line-height: 1 !important;
+    }
+
+    .gallery-star {
+      left: 8px !important;
+      color: #f2a900 !important;
+    }
+
+    .gallery-remove {
+      right: 8px !important;
+      color: #991b1b !important;
+    }
+
+    .gallery-item.is-cover .gallery-star {
+      background: #f2a900 !important;
+      color: white !important;
+    }
+
+    /* Подсказка короче */
+    #productDialog .muted.small {
+      font-size: 0 !important;
+      line-height: 0 !important;
+      margin: 0 !important;
+    }
+
+    #productDialog .muted.small::after {
+      content: 'До 5 фото. ⭐ — обложка. Перетащи фото мышкой, чтобы изменить порядок.';
+      display: block !important;
+      font-size: 12px !important;
+      line-height: 1.25 !important;
+      color: rgba(77, 10, 51, .62) !important;
+      margin-top: 4px !important;
+      font-weight: 800 !important;
+    }
+
+    /* Кнопки всегда внизу */
+    #productDialog .dialog-actions {
+      position: sticky !important;
+      bottom: 0 !important;
+      z-index: 10 !important;
+      margin: 0 !important;
+      padding-top: 12px !important;
+      background: rgba(255,248,239,.985) !important;
+    }
+
+    #productDialog .dialog-actions button {
+      height: 46px !important;
+      min-height: 46px !important;
+      padding: 0 24px !important;
+      font-size: 15px !important;
+      border-radius: 999px !important;
+      font-weight: 950 !important;
+    }
+
+    @media (max-width: 1100px) {
+      #productDialog {
+        width: min(980px, calc(100vw - 24px)) !important;
+      }
+
+      #productDialog .product-form-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(420px, .9fr) !important;
+      }
+
+      #imageGalleryList .gallery-slot,
+      #imageGalleryList .gallery-item {
+        height: 170px !important;
+        min-height: 170px !important;
+      }
+
+      #imageGalleryList .gallery-item img {
+        height: 120px !important;
+      }
+    }
+
+    @media (max-width: 900px) {
+      #productDialog .dialog-card,
+      #productDialog form {
+        height: auto !important;
+        overflow: auto !important;
+      }
+
+      #productDialog .product-form-grid {
+        grid-template-columns: 1fr !important;
+        overflow: visible !important;
+      }
+
+      #imageGalleryList {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        max-height: none !important;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+})();
