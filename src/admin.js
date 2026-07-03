@@ -9,167 +9,8 @@ import {
   tagLabels,
   uid
 } from './shared.js';
-/* OTBASU PRODUCT PHOTO UPLOAD FIX — вставить сразу после import
-   Исправляет загрузку фото в карточке товара.
-   Не трогает витрину.
-*/
-const OTBASU_MAX_PRODUCT_PHOTOS = 5;
+const MAX_PRODUCT_PHOTOS = 5;
 
-function otbasuCanvasToBlob(canvas, type = 'image/webp', quality = 0.84) {
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => resolve(blob), type, quality);
-  });
-}
-
-function otbasuLoadImageFromFile(file) {
-  return new Promise((resolve, reject) => {
-    const objectUrl = URL.createObjectURL(file);
-    const image = new Image();
-
-    image.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(image);
-    };
-
-    image.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error(`Не удалось прочитать фото: ${file.name}`));
-    };
-
-    image.src = objectUrl;
-  });
-}
-
-async function otbasuPrepareProductPhoto(file, isCover = false) {
-  if (!file?.type?.startsWith('image/')) return file;
-  if (file.type === 'image/gif') return file;
-
-  try {
-    const image = await otbasuLoadImageFromFile(file);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    if (!ctx) return file;
-
-    if (isCover) {
-      const size = 1080;
-      canvas.width = size;
-      canvas.height = size;
-
-      ctx.fillStyle = '#fff8ef';
-      ctx.fillRect(0, 0, size, size);
-
-      const scale = Math.min(size / image.width, size / image.height);
-      const width = Math.round(image.width * scale);
-      const height = Math.round(image.height * scale);
-      const x = Math.round((size - width) / 2);
-      const y = Math.round((size - height) / 2);
-
-      ctx.drawImage(image, x, y, width, height);
-    } else {
-      const maxSide = 1600;
-      const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
-
-      canvas.width = Math.round(image.width * scale);
-      canvas.height = Math.round(image.height * scale);
-
-      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    }
-
-    let quality = 0.84;
-    let blob = await otbasuCanvasToBlob(canvas, 'image/webp', quality);
-
-    while (blob && blob.size > 850 * 1024 && quality > 0.62) {
-      quality -= 0.06;
-      blob = await otbasuCanvasToBlob(canvas, 'image/webp', quality);
-    }
-
-    if (!blob || blob.size >= file.size) return file;
-
-    const cleanName = file.name
-      .replace(/\.[^.]+$/, '')
-      .replace(/[^a-zа-я0-9_-]+/gi, '-')
-      .replace(/^-+|-+$/g, '');
-
-    return new File([blob], `${cleanName || 'product-photo'}.webp`, {
-      type: 'image/webp',
-      lastModified: Date.now()
-    });
-  } catch (error) {
-    console.warn('[OTBASU] Фото не удалось подготовить, использую оригинал:', error);
-    return file;
-  }
-}
-
-/* ВАЖНО:
-   Этот обработчик стоит сверху файла и срабатывает раньше старого автосжатия.
-   Поэтому фото сразу попадают в imageDraft и отображаются в галерее.
-*/
-document.addEventListener('change', async (event) => {
-  const input = event.target;
-
-  if (!(input instanceof HTMLInputElement)) return;
-  if (input.type !== 'file') return;
-  if (input.name !== 'imageFile') return;
-  if (!input.closest('#productForm')) return;
-
-  const files = Array.from(input.files || []).filter((file) => file.type.startsWith('image/'));
-
-  if (!files.length) return;
-
-  event.preventDefault();
-  event.stopPropagation();
-  event.stopImmediatePropagation();
-
-  const freeSlots = Math.max(0, OTBASU_MAX_PRODUCT_PHOTOS - imageDraft.length);
-
-  if (freeSlots <= 0) {
-    input.value = '';
-    setStatus('Можно добавить максимум 5 фотографий товара.', 'error');
-    return;
-  }
-
-  const selectedFiles = files.slice(0, freeSlots);
-  const beforeSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
-
-  setStatus(`Готовлю фото: ${selectedFiles.length} шт...`);
-
-  try {
-    for (let index = 0; index < selectedFiles.length; index += 1) {
-      const file = selectedFiles[index];
-      const willBeCover = imageDraft.length === 0 && index === 0;
-      const preparedFile = await otbasuPrepareProductPhoto(file, willBeCover);
-
-      imageDraft.push({
-        id: uid('img'),
-        type: 'file',
-        file: preparedFile,
-        previewUrl: URL.createObjectURL(preparedFile)
-      });
-    }
-
-    const afterSize = imageDraft
-      .filter((item) => item.type === 'file')
-      .reduce((sum, item) => sum + (item.file?.size || 0), 0);
-
-    input.value = '';
-    renderImageDraft();
-
-    if (files.length > freeSlots) {
-      setStatus('Добавлены первые 5 фото. Лишние фото не добавлены.', 'error');
-      return;
-    }
-
-    if (beforeSize > 0 && afterSize > 0) {
-      setStatus('Фото добавлены. Нажми ⭐ для обложки или перетащи фото для порядка.', 'ok');
-    } else {
-      setStatus('Фото добавлены.', 'ok');
-    }
-  } catch (error) {
-    input.value = '';
-    setStatus(`Ошибка фото: ${error.message}`, 'error');
-  }
-}, true);
 const roleLabels = {
   admin: 'Администратор',
   content_manager: 'Контент-менеджер'
@@ -892,7 +733,8 @@ function openProductDialog(productId = null) {
   form.note.value = product?.note || '';
   form.imageUrl.value = '';
 
-  imageDraft = (product?.images || []).map((url) => ({
+  releaseImageDraft();
+  imageDraft = (product?.images || []).slice(0, MAX_PRODUCT_PHOTOS).map((url) => ({
     id: uid('img'),
     type: 'url',
     url
@@ -915,33 +757,59 @@ function imageItemSource(item) {
   return item?.type === 'file' ? item.previewUrl : item?.url;
 }
 
+function releaseImagePreview(item) {
+  if (item?.type === 'file' && item.previewUrl) {
+    URL.revokeObjectURL(item.previewUrl);
+  }
+}
+
+function releaseImageDraft() {
+  imageDraft.forEach(releaseImagePreview);
+}
+
 function renderImageDraft() {
   const first = imageDraft[0];
   const src = imageItemSource(first);
 
   if (els.imagePreview) {
     els.imagePreview.innerHTML = src
-      ? `<img src="${escapeHtml(src)}" alt="">`
-      : '<span>Главное фото</span>';
+      ? `<img src="${escapeHtml(src)}" alt="Обложка товара"><span class="preview-badge">Обложка</span>`
+      : '<span class="preview-empty">Главное фото</span>';
   }
 
   if (!els.imageGalleryList) return;
 
-  els.imageGalleryList.innerHTML = imageDraft.length ? imageDraft.map((item, index) => {
+  const photos = imageDraft.slice(0, MAX_PRODUCT_PHOTOS);
+  const photoHtml = photos.map((item, index) => {
     const itemSrc = imageItemSource(item);
+    const label = index === 0 ? 'Обложка' : `Фото ${index + 1}`;
+    const sourceLabel = item.type === 'file' ? 'файл' : 'URL';
 
     return `
       <div class="gallery-item ${index === 0 ? 'is-cover' : ''}" draggable="true" data-image-id="${escapeHtml(item.id)}">
-        <button type="button" class="gallery-star" data-image-cover="${escapeHtml(item.id)}" title="Сделать обложкой">${index === 0 ? '★' : '☆'}</button>
-        <button type="button" class="gallery-remove" data-image-remove="${escapeHtml(item.id)}" title="Удалить">×</button>
-        <img src="${escapeHtml(itemSrc)}" alt="">
+        <span class="gallery-order">${index + 1}</span>
+        <button type="button" class="gallery-star" data-image-cover="${escapeHtml(item.id)}" title="Сделать обложкой" aria-label="Сделать фото ${index + 1} обложкой">${index === 0 ? '★' : '☆'}</button>
+        <button type="button" class="gallery-remove" data-image-remove="${escapeHtml(item.id)}" title="Удалить" aria-label="Удалить фото ${index + 1}">×</button>
+        <div class="gallery-image-wrap">
+          <img src="${escapeHtml(itemSrc)}" alt="${escapeHtml(label)}">
+        </div>
         <div class="gallery-item-meta">
-          <strong>${index === 0 ? 'Обложка' : `Фото ${index + 1}`}</strong>
-          <span>${item.type === 'file' ? 'файл' : 'URL'} · перетащи для порядка</span>
+          <strong>${escapeHtml(label)}</strong>
+          <span>${escapeHtml(sourceLabel)} · перетащи</span>
         </div>
       </div>
     `;
-  }).join('') : '<div class="empty-state">Фото пока не добавлены.</div>';
+  }).join('');
+
+  const emptyHtml = Array.from({ length: Math.max(0, MAX_PRODUCT_PHOTOS - photos.length) })
+    .map((_, index) => `
+      <div class="gallery-slot" aria-hidden="true">
+        <span>${photos.length + index + 1}</span>
+      </div>
+    `)
+    .join('');
+
+  els.imageGalleryList.innerHTML = photoHtml + emptyHtml;
 
   els.imageGalleryList.querySelectorAll('[data-image-cover]').forEach((button) => {
     button.addEventListener('click', () => makeCoverImage(button.dataset.imageCover));
@@ -951,22 +819,34 @@ function renderImageDraft() {
     button.addEventListener('click', () => removeImage(button.dataset.imageRemove));
   });
 
-  els.imageGalleryList.querySelectorAll('[data-image-id]').forEach((card) => {
-    card.addEventListener('dragstart', () => {
+  els.imageGalleryList.querySelectorAll('.gallery-item[data-image-id]').forEach((card) => {
+    card.addEventListener('dragstart', (event) => {
       draggedImageId = card.dataset.imageId;
       card.classList.add('dragging');
+      event.dataTransfer?.setData('text/plain', draggedImageId || '');
+      event.dataTransfer?.setDragImage(card, card.offsetWidth / 2, 24);
     });
 
     card.addEventListener('dragend', () => {
+      draggedImageId = null;
       card.classList.remove('dragging');
+      els.imageGalleryList?.querySelectorAll('.is-drop-target').forEach((item) => {
+        item.classList.remove('is-drop-target');
+      });
     });
 
     card.addEventListener('dragover', (event) => {
       event.preventDefault();
+      card.classList.add('is-drop-target');
+    });
+
+    card.addEventListener('dragleave', () => {
+      card.classList.remove('is-drop-target');
     });
 
     card.addEventListener('drop', (event) => {
       event.preventDefault();
+      card.classList.remove('is-drop-target');
 
       const targetId = card.dataset.imageId;
 
@@ -997,6 +877,8 @@ function makeCoverImage(imageId) {
 }
 
 function removeImage(imageId) {
+  const removed = imageDraft.find((item) => item.id === imageId);
+  releaseImagePreview(removed);
   imageDraft = imageDraft.filter((item) => item.id !== imageId);
   renderImageDraft();
 }
@@ -1007,6 +889,12 @@ function addUrlImage() {
 
   if (!url) return;
 
+  if (imageDraft.length >= MAX_PRODUCT_PHOTOS) {
+    setStatus('Можно добавить максимум 5 фотографий товара.', 'error');
+    if (input) input.value = '';
+    return;
+  }
+
   const exists = imageDraft.some((item) => item.url === url);
 
   if (!exists) {
@@ -1015,6 +903,7 @@ function addUrlImage() {
       type: 'url',
       url
     });
+    setStatus('Фото по URL добавлено.', 'ok');
   }
 
   if (input) input.value = '';
@@ -1022,19 +911,66 @@ function addUrlImage() {
   renderImageDraft();
 }
 
-function addFileImages(files) {
-  Array.from(files || []).forEach((file) => {
-    if (!file.type.startsWith('image/')) return;
+function bindImageUrlInput() {
+  const input = els.productForm?.elements?.imageUrl;
 
-    imageDraft.push({
-      id: uid('img'),
-      type: 'file',
-      file,
-      previewUrl: URL.createObjectURL(file)
-    });
+  if (!input || input.dataset.urlAutoBound === 'true') return;
+
+  input.dataset.urlAutoBound = 'true';
+
+  input.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+
+    event.preventDefault();
+    addUrlImage();
   });
 
-  renderImageDraft();
+  input.addEventListener('blur', () => {
+    if (input.value.trim()) addUrlImage();
+  });
+}
+
+async function addFileImages(files) {
+  const incoming = Array.from(files || []).filter((file) => file.type.startsWith('image/'));
+
+  if (!incoming.length) return;
+
+  const freeSlots = Math.max(0, MAX_PRODUCT_PHOTOS - imageDraft.length);
+
+  if (freeSlots <= 0) {
+    setStatus('Можно добавить максимум 5 фотографий товара.', 'error');
+    return;
+  }
+
+  const selected = incoming.slice(0, freeSlots);
+
+  setStatus(`Готовлю фото: ${selected.length} шт...`);
+
+  try {
+    for (let index = 0; index < selected.length; index += 1) {
+      const file = selected[index];
+      const willBeCover = imageDraft.length === 0 && index === 0;
+      const preparedFile = await compressImageFile(file, willBeCover);
+
+      imageDraft.push({
+        id: uid('img'),
+        type: 'file',
+        file: preparedFile,
+        previewUrl: URL.createObjectURL(preparedFile)
+      });
+    }
+
+    renderImageDraft();
+
+    if (incoming.length > freeSlots) {
+      setStatus('Добавлены только свободные места. Максимум — 5 фото товара.', 'error');
+      return;
+    }
+
+    setStatus('Фото добавлены. Нажми ★ для обложки или перетащи карточки, чтобы изменить порядок.', 'ok');
+  } catch (error) {
+    setStatus(`Ошибка фото: ${error.message}`, 'error');
+  }
 }
 
 function loadImageFromFile(file) {
@@ -1438,9 +1374,10 @@ function bindEvents() {
   els.saveAndNewButton?.addEventListener('click', (event) => saveProduct(event, true));
 
   els.addImageUrlButton?.addEventListener('click', addUrlImage);
+  bindImageUrlInput();
 
-  els.productForm?.elements?.imageFile?.addEventListener('change', (event) => {
-    addFileImages(event.target.files);
+  els.productForm?.elements?.imageFile?.addEventListener('change', async (event) => {
+    await addFileImages(event.target.files);
     event.target.value = '';
   });
 
@@ -1455,7 +1392,10 @@ function injectAdminUiFixes() {
 
   style.textContent = `
     #otbasuPhotoSizeHint,
-    .otbasu-photo-size-hint {
+    .otbasu-photo-size-hint,
+    .otbasu-compress-note,
+    #addImageUrlButton,
+    label:has(input[name="sort"]) {
       display: none !important;
     }
 
@@ -1477,7 +1417,7 @@ function injectAdminUiFixes() {
       color: #6b0f46 !important;
       border: 1px solid rgba(123, 18, 79, .18) !important;
       box-shadow: 0 12px 30px rgba(50, 8, 34, .12) !important;
-      font-size: 14px !important;
+      font-size: 0 !important;
       font-weight: 950 !important;
       white-space: nowrap !important;
       cursor: pointer !important;
@@ -1485,851 +1425,18 @@ function injectAdminUiFixes() {
 
     #logoutButton::before {
       content: 'Выйти';
-    }
-
-    #logoutButton {
-      font-size: 0 !important;
-    }
-
-    #logoutButton::before {
       font-size: 14px !important;
     }
 
     #productDialog {
-      width: min(980px, calc(100vw - 28px)) !important;
-      max-height: calc(100vh - 20px) !important;
+      width: min(1240px, calc(100vw - 32px)) !important;
+      max-width: 1240px !important;
+      max-height: calc(100vh - 28px) !important;
       border: 0 !important;
       border-radius: 30px !important;
       padding: 0 !important;
-      background: rgba(255, 248, 239, .98) !important;
-      box-shadow: 0 28px 90px rgba(29, 3, 19, .38) !important;
       overflow: hidden !important;
-    }
-
-    #productDialog::backdrop {
-      background: rgba(21, 3, 15, .72) !important;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
-
-    #productDialog .dialog-card,
-    #productDialog form {
-      padding: 18px 22px !important;
-      max-height: calc(100vh - 20px) !important;
-      display: flex !important;
-      flex-direction: column !important;
-      gap: 12px !important;
-      overflow: hidden !important;
-    }
-
-    #productDialog .panel-heading {
-      margin-bottom: 0 !important;
-    }
-
-    #productDialog .panel-heading h2 {
-      font-size: 28px !important;
-      line-height: 1.05 !important;
-      margin: 0 !important;
-    }
-
-    #productDialog .eyebrow {
-      font-size: 11px !important;
-      margin-bottom: 4px !important;
-    }
-
-    #productDialog .product-form-grid {
-      flex: 1 !important;
-      min-height: 0 !important;
-      display: grid !important;
-      grid-template-columns: minmax(0, 1.55fr) minmax(290px, .9fr) !important;
-      gap: 16px !important;
-      overflow: hidden !important;
-    }
-
-    #productDialog .form-stack {
-      gap: 9px !important;
-    }
-
-    #productDialog label {
-      font-size: 12px !important;
-      gap: 5px !important;
-    }
-
-    #productDialog input,
-    #productDialog select,
-    #productDialog textarea {
-      min-height: 42px !important;
-      height: 42px !important;
-      padding: 10px 14px !important;
-      font-size: 13px !important;
-      border-radius: 15px !important;
-    }
-
-    #productDialog textarea {
-      height: 64px !important;
-      min-height: 64px !important;
-      resize: none !important;
-    }
-
-    #productDialog .two-col {
-      gap: 10px !important;
-    }
-
-    #productDialog .image-box {
-      gap: 8px !important;
-      align-content: start !important;
-    }
-
-    #imagePreview {
-      width: 100% !important;
-      height: 170px !important;
-      min-height: 170px !important;
-      max-height: 170px !important;
-      border-radius: 20px !important;
-      border: 1px dashed rgba(123, 18, 79, .24) !important;
-      display: grid !important;
-      place-items: center !important;
-      overflow: hidden !important;
-      background: rgba(255, 255, 255, .74) !important;
-      color: rgba(77, 10, 51, .45) !important;
-      font-weight: 900 !important;
-    }
-
-    #imagePreview img {
-      width: 100% !important;
-      height: 170px !important;
-      object-fit: contain !important;
-      object-position: center !important;
-      display: block !important;
-      background: #fff8ef !important;
-    }
-
-    #productDialog .gallery-manager {
-      padding: 10px !important;
-      border-radius: 18px !important;
-    }
-
-    #productDialog .gallery-head {
-      margin: 0 0 8px !important;
-    }
-
-    #productDialog .gallery-head strong,
-    #productDialog .gallery-head span {
-      font-size: 12px !important;
-    }
-
-    #imageGalleryList {
-      display: grid !important;
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
-      gap: 8px !important;
-      max-height: 172px !important;
-      overflow-y: auto !important;
-      margin-top: 8px !important;
-    }
-
-    #imageGalleryList .empty-state {
-      grid-column: 1 / -1 !important;
-      padding: 12px !important;
-      border-radius: 16px !important;
-      background: rgba(255,255,255,.68) !important;
-      color: rgba(77,10,51,.52) !important;
-      font-size: 12px !important;
-      font-weight: 800 !important;
-    }
-
-    #imageGalleryList .gallery-item {
-      position: relative !important;
-      min-height: 132px !important;
-      border-radius: 16px !important;
-      background: rgba(255, 255, 255, .9) !important;
-      border: 1px solid rgba(123, 18, 79, .13) !important;
-      box-shadow: 0 10px 24px rgba(50, 8, 34, .1) !important;
-      overflow: hidden !important;
-      cursor: grab !important;
-    }
-
-    #imageGalleryList .gallery-item.dragging {
-      opacity: .55 !important;
-      transform: scale(.98) !important;
-    }
-
-    #imageGalleryList .gallery-item.is-cover {
-      border: 2px solid #f2a900 !important;
-      box-shadow: 0 14px 28px rgba(242, 169, 0, .18) !important;
-    }
-
-    #imageGalleryList .gallery-item img {
-      width: 100% !important;
-      height: 88px !important;
-      object-fit: contain !important;
-      object-position: center !important;
-      display: block !important;
-      padding: 6px !important;
-      box-sizing: border-box !important;
-      background: #fff8ef !important;
-    }
-
-    #imageGalleryList .gallery-item-meta {
-      padding: 6px 8px !important;
-      display: grid !important;
-      gap: 2px !important;
-    }
-
-    #imageGalleryList .gallery-item-meta strong {
-      font-size: 11px !important;
-      line-height: 1.1 !important;
-      color: #4d0a33 !important;
-    }
-
-    #imageGalleryList .gallery-item-meta span {
-      font-size: 10px !important;
-      line-height: 1.1 !important;
-      color: rgba(77, 10, 51, .58) !important;
-    }
-
-    .gallery-star,
-    .gallery-remove {
-      position: absolute !important;
-      z-index: 2 !important;
-      top: 6px !important;
-      width: 28px !important;
-      height: 28px !important;
-      min-width: 28px !important;
-      min-height: 28px !important;
-      max-width: 28px !important;
-      max-height: 28px !important;
-      padding: 0 !important;
-      border-radius: 999px !important;
-      display: grid !important;
-      place-items: center !important;
-      border: 0 !important;
-      background: white !important;
-      box-shadow: 0 8px 18px rgba(0,0,0,.14) !important;
-      cursor: pointer !important;
-      font-size: 15px !important;
-      line-height: 1 !important;
-    }
-
-    .gallery-star {
-      left: 6px !important;
-      color: #f2a900 !important;
-    }
-
-    .gallery-remove {
-      right: 6px !important;
-      color: #991b1b !important;
-    }
-
-    .gallery-item.is-cover .gallery-star {
-      background: #f2a900 !important;
-      color: white !important;
-    }
-
-    #productDialog .muted.small {
-      font-size: 0 !important;
-      line-height: 0 !important;
-      margin: 0 !important;
-    }
-
-    #productDialog .muted.small::after {
-      content: '⭐ — обложка. Перетащи фото мышкой, чтобы изменить порядок.';
-      display: block !important;
-      font-size: 11px !important;
-      line-height: 1.25 !important;
-      color: rgba(77, 10, 51, .62) !important;
-      margin-top: 2px !important;
-    }
-
-    #productDialog .dialog-actions {
-      position: sticky !important;
-      bottom: 0 !important;
-      margin-top: 4px !important;
-      padding-top: 10px !important;
-      background: rgba(255, 248, 239, .96) !important;
-      z-index: 5 !important;
-    }
-
-    #productDialog .dialog-actions button {
-      min-height: 42px !important;
-      height: 42px !important;
-      padding: 0 20px !important;
-      font-size: 14px !important;
-      border-radius: 999px !important;
-      font-weight: 900 !important;
-    }
-
-    @media (max-width: 900px) {
-      #productDialog .dialog-card,
-      #productDialog form {
-        overflow: auto !important;
-      }
-
-      #productDialog .product-form-grid {
-        grid-template-columns: 1fr !important;
-        overflow: visible !important;
-      }
-    }
-  `;
-
-  document.head.appendChild(style);
-}
-
-bindEvents();
-injectAdminUiFixes();
-requireSession();
-/* OTBASU PRODUCT DIALOG PROFESSIONAL UI
-   Только окно добавления/редактирования товара.
-   Витрину не трогает.
-*/
-(() => {
-  if (window.__OTBASU_PRODUCT_DIALOG_PRO_UI__) return;
-  window.__OTBASU_PRODUCT_DIALOG_PRO_UI__ = true;
-
-  function injectProductDialogStyles() {
-    if (document.getElementById('otbasu-product-dialog-pro-style')) return;
-
-    const style = document.createElement('style');
-    style.id = 'otbasu-product-dialog-pro-style';
-
-    style.textContent = `
-      #otbasuPhotoSizeHint,
-      .otbasu-photo-size-hint,
-      .otbasu-compress-note,
-      #addImageUrlButton,
-      label:has(input[name="sort"]) {
-        display: none !important;
-      }
-
-      #productDialog {
-        width: min(980px, calc(100vw - 32px)) !important;
-        max-height: calc(100vh - 32px) !important;
-        border: 0 !important;
-        border-radius: 30px !important;
-        padding: 0 !important;
-        overflow: hidden !important;
-        background: rgba(255, 248, 239, .98) !important;
-        box-shadow: 0 28px 90px rgba(29, 3, 19, .38) !important;
-      }
-
-      #productDialog::backdrop {
-        background: rgba(21, 3, 15, .72) !important;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-      }
-
-      #productDialog .dialog-card,
-      #productDialog form {
-        height: min(720px, calc(100vh - 32px)) !important;
-        max-height: calc(100vh - 32px) !important;
-        padding: 18px 22px !important;
-        display: grid !important;
-        grid-template-rows: auto minmax(0, 1fr) auto !important;
-        gap: 12px !important;
-        overflow: hidden !important;
-      }
-
-      #productDialog .panel-heading {
-        margin: 0 !important;
-      }
-
-      #productDialog .panel-heading h2 {
-        font-size: 28px !important;
-        line-height: 1.05 !important;
-        margin: 0 !important;
-      }
-
-      #productDialog .eyebrow {
-        font-size: 11px !important;
-        margin: 0 0 4px !important;
-        letter-spacing: .06em !important;
-      }
-
-      #productDialog .product-form-grid {
-        min-height: 0 !important;
-        display: grid !important;
-        grid-template-columns: minmax(0, 1.45fr) minmax(320px, .95fr) !important;
-        gap: 16px !important;
-        overflow: hidden !important;
-      }
-
-      #productDialog .form-stack,
-      #productDialog .image-box {
-        min-height: 0 !important;
-        overflow: hidden !important;
-      }
-
-      #productDialog .form-stack {
-        gap: 9px !important;
-      }
-
-      #productDialog .two-col {
-        gap: 10px !important;
-      }
-
-      #productDialog label {
-        font-size: 12px !important;
-        gap: 5px !important;
-        line-height: 1.25 !important;
-      }
-
-      #productDialog input,
-      #productDialog select,
-      #productDialog textarea {
-        height: 40px !important;
-        min-height: 40px !important;
-        padding: 9px 14px !important;
-        font-size: 13px !important;
-        border-radius: 15px !important;
-      }
-
-      #productDialog textarea {
-        height: 58px !important;
-        min-height: 58px !important;
-        resize: none !important;
-      }
-
-      #productDialog .image-box {
-        display: grid !important;
-        grid-template-rows: auto auto auto auto minmax(0, 1fr) auto !important;
-        gap: 8px !important;
-        align-content: start !important;
-      }
-
-      #imagePreview {
-        width: 100% !important;
-        height: 205px !important;
-        min-height: 205px !important;
-        max-height: 205px !important;
-        border-radius: 22px !important;
-        border: 1px dashed rgba(123, 18, 79, .25) !important;
-        display: grid !important;
-        place-items: center !important;
-        overflow: hidden !important;
-        background:
-          radial-gradient(circle at 50% 0%, rgba(255, 224, 186, .52), transparent 48%),
-          rgba(255, 255, 255, .76) !important;
-        color: rgba(77, 10, 51, .45) !important;
-        font-weight: 950 !important;
-      }
-
-      #imagePreview img {
-        width: 100% !important;
-        height: 205px !important;
-        object-fit: contain !important;
-        object-position: center !important;
-        display: block !important;
-        background: #fff8ef !important;
-      }
-
-      #productDialog .gallery-manager {
-        padding: 10px !important;
-        border-radius: 18px !important;
-        min-height: 0 !important;
-        overflow: hidden !important;
-        background: rgba(255,255,255,.48) !important;
-      }
-
-      #productDialog .gallery-head {
-        margin: 0 0 8px !important;
-      }
-
-      #productDialog .gallery-head strong,
-      #productDialog .gallery-head span {
-        font-size: 12px !important;
-      }
-
-      #imageGalleryList {
-        display: grid !important;
-        grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-        gap: 8px !important;
-        max-height: 150px !important;
-        overflow: hidden !important;
-        margin-top: 8px !important;
-      }
-
-      #imageGalleryList .gallery-slot,
-      #imageGalleryList .gallery-item {
-        position: relative !important;
-        height: 140px !important;
-        min-height: 140px !important;
-        border-radius: 16px !important;
-        overflow: hidden !important;
-        background: rgba(255, 255, 255, .9) !important;
-        border: 1px solid rgba(123, 18, 79, .14) !important;
-        box-shadow: 0 10px 22px rgba(50, 8, 34, .08) !important;
-      }
-
-      #imageGalleryList .gallery-slot {
-        display: grid !important;
-        place-items: center !important;
-        color: rgba(77, 10, 51, .34) !important;
-        font-size: 18px !important;
-        font-weight: 950 !important;
-        border-style: dashed !important;
-        box-shadow: none !important;
-      }
-
-      #imageGalleryList .gallery-item {
-        cursor: grab !important;
-      }
-
-      #imageGalleryList .gallery-item:active {
-        cursor: grabbing !important;
-      }
-
-      #imageGalleryList .gallery-item.dragging {
-        opacity: .55 !important;
-        transform: scale(.98) !important;
-      }
-
-      #imageGalleryList .gallery-item.is-cover {
-        border: 2px solid #f2a900 !important;
-        box-shadow: 0 14px 28px rgba(242, 169, 0, .18) !important;
-      }
-
-      #imageGalleryList .gallery-item img {
-        width: 100% !important;
-        height: 92px !important;
-        object-fit: contain !important;
-        object-position: center !important;
-        display: block !important;
-        padding: 6px !important;
-        box-sizing: border-box !important;
-        background: #fff8ef !important;
-      }
-
-      #imageGalleryList .gallery-item-meta {
-        padding: 6px 7px !important;
-        display: grid !important;
-        gap: 2px !important;
-      }
-
-      #imageGalleryList .gallery-item-meta strong {
-        font-size: 10px !important;
-        line-height: 1.05 !important;
-        color: #4d0a33 !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-      }
-
-      #imageGalleryList .gallery-item-meta span {
-        display: none !important;
-      }
-
-      .gallery-star,
-      .gallery-remove {
-        position: absolute !important;
-        z-index: 3 !important;
-        top: 5px !important;
-        width: 27px !important;
-        height: 27px !important;
-        min-width: 27px !important;
-        min-height: 27px !important;
-        max-width: 27px !important;
-        max-height: 27px !important;
-        padding: 0 !important;
-        border-radius: 999px !important;
-        display: grid !important;
-        place-items: center !important;
-        border: 0 !important;
-        background: white !important;
-        box-shadow: 0 8px 18px rgba(0,0,0,.14) !important;
-        cursor: pointer !important;
-        font-size: 15px !important;
-        line-height: 1 !important;
-      }
-
-      .gallery-star {
-        left: 5px !important;
-        color: #f2a900 !important;
-      }
-
-      .gallery-remove {
-        right: 5px !important;
-        color: #991b1b !important;
-      }
-
-      .gallery-item.is-cover .gallery-star {
-        background: #f2a900 !important;
-        color: white !important;
-      }
-
-      #productDialog .muted.small {
-        font-size: 0 !important;
-        line-height: 0 !important;
-        margin: 0 !important;
-      }
-
-      #productDialog .muted.small::after {
-        content: 'Можно добавить до 5 фото. ⭐ — обложка. Перетащи фото мышкой, чтобы изменить порядок.';
-        display: block !important;
-        font-size: 11px !important;
-        line-height: 1.25 !important;
-        color: rgba(77, 10, 51, .62) !important;
-        margin-top: 2px !important;
-      }
-
-      #productDialog .dialog-actions {
-        position: sticky !important;
-        bottom: 0 !important;
-        z-index: 10 !important;
-        margin: 0 !important;
-        padding-top: 10px !important;
-        background: rgba(255,248,239,.98) !important;
-      }
-
-      #productDialog .dialog-actions button {
-        height: 42px !important;
-        min-height: 42px !important;
-        padding: 0 20px !important;
-        font-size: 14px !important;
-        border-radius: 999px !important;
-        font-weight: 900 !important;
-      }
-
-      @media (max-width: 900px) {
-        #productDialog .dialog-card,
-        #productDialog form {
-          height: auto !important;
-          overflow: auto !important;
-        }
-
-        #productDialog .product-form-grid {
-          grid-template-columns: 1fr !important;
-          overflow: visible !important;
-        }
-
-        #imageGalleryList {
-          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          max-height: none !important;
-        }
-      }
-    `;
-
-    document.head.appendChild(style);
-  }
-
-  function otbasuImageSource(item) {
-    return item?.type === 'file' ? item.previewUrl : item?.url;
-  }
-
-  function otbasuRenderProductGallery() {
-    const first = imageDraft[0];
-    const firstSrc = otbasuImageSource(first);
-
-    if (els.imagePreview) {
-      els.imagePreview.innerHTML = firstSrc
-        ? `<img src="${escapeHtml(firstSrc)}" alt="">`
-        : '<span>Главное фото</span>';
-    }
-
-    if (!els.imageGalleryList) return;
-
-    const photos = imageDraft.slice(0, OTBASU_MAX_PRODUCT_PHOTOS);
-
-    const photoHtml = photos.map((item, index) => {
-      const src = otbasuImageSource(item);
-
-      return `
-        <div class="gallery-item ${index === 0 ? 'is-cover' : ''}" draggable="true" data-image-id="${escapeHtml(item.id)}">
-          <button type="button" class="gallery-star" data-image-cover="${escapeHtml(item.id)}" title="Сделать обложкой">${index === 0 ? '★' : '☆'}</button>
-          <button type="button" class="gallery-remove" data-image-remove="${escapeHtml(item.id)}" title="Удалить">×</button>
-          <img src="${escapeHtml(src)}" alt="">
-          <div class="gallery-item-meta">
-            <strong>${index === 0 ? 'Обложка' : `Фото ${index + 1}`}</strong>
-            <span>перетащи</span>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    const emptyHtml = Array.from({ length: Math.max(0, OTBASU_MAX_PRODUCT_PHOTOS - photos.length) })
-      .map((_, index) => `<div class="gallery-slot">+${photos.length + index + 1}</div>`)
-      .join('');
-
-    els.imageGalleryList.innerHTML = photoHtml + emptyHtml;
-
-    els.imageGalleryList.querySelectorAll('[data-image-cover]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const imageId = button.dataset.imageCover;
-        const index = imageDraft.findIndex((item) => item.id === imageId);
-
-        if (index <= 0) return;
-
-        const [selected] = imageDraft.splice(index, 1);
-        imageDraft.unshift(selected);
-
-        otbasuRenderProductGallery();
-      });
-    });
-
-    els.imageGalleryList.querySelectorAll('[data-image-remove]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const imageId = button.dataset.imageRemove;
-        imageDraft = imageDraft.filter((item) => item.id !== imageId);
-        otbasuRenderProductGallery();
-      });
-    });
-
-    els.imageGalleryList.querySelectorAll('.gallery-item[data-image-id]').forEach((card) => {
-      card.addEventListener('dragstart', () => {
-        draggedImageId = card.dataset.imageId;
-        card.classList.add('dragging');
-      });
-
-      card.addEventListener('dragend', () => {
-        card.classList.remove('dragging');
-      });
-
-      card.addEventListener('dragover', (event) => {
-        event.preventDefault();
-      });
-
-      card.addEventListener('drop', (event) => {
-        event.preventDefault();
-
-        const targetId = card.dataset.imageId;
-
-        if (!draggedImageId || !targetId || draggedImageId === targetId) return;
-
-        const from = imageDraft.findIndex((item) => item.id === draggedImageId);
-        const to = imageDraft.findIndex((item) => item.id === targetId);
-
-        if (from < 0 || to < 0) return;
-
-        const [moved] = imageDraft.splice(from, 1);
-        imageDraft.splice(to, 0, moved);
-
-        otbasuRenderProductGallery();
-      });
-    });
-  }
-
-  function patchProductPhotoFunctions() {
-    renderImageDraft = otbasuRenderProductGallery;
-
-    addUrlImage = function patchedAddUrlImage() {
-      const input = els.productForm?.elements?.imageUrl;
-      const url = normalizeExternalUrl(input?.value || '');
-
-      if (!url) return;
-
-      if (imageDraft.length >= OTBASU_MAX_PRODUCT_PHOTOS) {
-        setStatus('Можно добавить максимум 5 фотографий товара.', 'error');
-        return;
-      }
-
-      const exists = imageDraft.some((item) => item.url === url);
-
-      if (!exists) {
-        imageDraft.push({
-          id: uid('img'),
-          type: 'url',
-          url
-        });
-      }
-
-      if (input) input.value = '';
-
-      renderImageDraft();
-    };
-
-    addFileImages = function patchedAddFileImages(files) {
-      const incoming = Array.from(files || []).filter((file) => file.type.startsWith('image/'));
-      const freeSlots = Math.max(0, OTBASU_MAX_PRODUCT_PHOTOS - imageDraft.length);
-      const selected = incoming.slice(0, freeSlots);
-
-      selected.forEach((file) => {
-        imageDraft.push({
-          id: uid('img'),
-          type: 'file',
-          file,
-          previewUrl: URL.createObjectURL(file)
-        });
-      });
-
-      if (incoming.length > freeSlots) {
-        setStatus('Можно добавить максимум 5 фотографий товара.', 'error');
-      }
-
-      renderImageDraft();
-    };
-  }
-
-  function bindUrlInputAutoAdd() {
-    const input = els.productForm?.elements?.imageUrl;
-
-    if (!input || input.dataset.otbasuUrlAutoBound === 'true') return;
-
-    input.dataset.otbasuUrlAutoBound = 'true';
-
-    input.addEventListener('keydown', (event) => {
-      if (event.key !== 'Enter') return;
-
-      event.preventDefault();
-      addUrlImage();
-    });
-
-    input.addEventListener('blur', () => {
-      if (input.value.trim()) addUrlImage();
-    });
-  }
-
-  function hideOldButtonAndPrepareDialog() {
-    injectProductDialogStyles();
-    bindUrlInputAutoAdd();
-
-    const addUrlButton = document.getElementById('addImageUrlButton');
-    if (addUrlButton) addUrlButton.hidden = true;
-  }
-
-  patchProductPhotoFunctions();
-  injectProductDialogStyles();
-
-  document.addEventListener('DOMContentLoaded', () => {
-    hideOldButtonAndPrepareDialog();
-    window.setTimeout(hideOldButtonAndPrepareDialog, 400);
-  });
-
-  document.addEventListener('click', () => {
-    window.setTimeout(hideOldButtonAndPrepareDialog, 150);
-  });
-
-  window.setTimeout(hideOldButtonAndPrepareDialog, 300);
-})();
-/* OTBASU PRODUCT DIALOG BIG MODERN VIEW
-   Увеличивает окно карточки товара и делает фото заметными.
-   Трогает только модальное окно добавления/редактирования товара.
-   Витрину не трогает.
-*/
-(() => {
-  if (window.__OTBASU_PRODUCT_DIALOG_BIG_MODERN_VIEW__) return;
-  window.__OTBASU_PRODUCT_DIALOG_BIG_MODERN_VIEW__ = true;
-
-  const style = document.createElement('style');
-  style.id = 'otbasu-product-dialog-big-modern-view';
-
-  style.textContent = `
-    /* Убираем лишнее только внутри карточки товара */
-    #otbasuPhotoSizeHint,
-    .otbasu-photo-size-hint,
-    .otbasu-compress-note,
-    #addImageUrlButton,
-    label:has(input[name="sort"]) {
-      display: none !important;
-    }
-
-    /* Больше само окно */
-    #productDialog {
-      width: min(1220px, calc(100vw - 32px)) !important;
-      max-width: 1220px !important;
-      max-height: calc(100vh - 28px) !important;
-      border: 0 !important;
-      border-radius: 34px !important;
-      padding: 0 !important;
-      overflow: hidden !important;
-      background: rgba(255, 248, 239, .985) !important;
+      background: #fffaf3 !important;
       box-shadow: 0 34px 100px rgba(29, 3, 19, .42) !important;
     }
 
@@ -2339,10 +1446,9 @@ requireSession();
       -webkit-backdrop-filter: blur(14px) !important;
     }
 
-    /* Внутренний каркас окна */
     #productDialog .dialog-card,
     #productDialog form {
-      height: min(820px, calc(100vh - 28px)) !important;
+      height: min(828px, calc(100vh - 28px)) !important;
       max-height: calc(100vh - 28px) !important;
       padding: 24px 28px !important;
       display: grid !important;
@@ -2355,13 +1461,14 @@ requireSession();
     #productDialog .panel-heading {
       margin: 0 !important;
       align-items: start !important;
+      gap: 16px !important;
     }
 
     #productDialog .panel-heading h2 {
       font-size: 34px !important;
       line-height: 1.02 !important;
       margin: 0 !important;
-      letter-spacing: -.02em !important;
+      letter-spacing: 0 !important;
     }
 
     #productDialog .eyebrow {
@@ -2371,11 +1478,53 @@ requireSession();
       font-weight: 950 !important;
     }
 
-    /* Две колонки: слева поля, справа фото */
+    #closeProductDialog {
+      position: relative !important;
+      width: 46px !important;
+      height: 46px !important;
+      min-width: 46px !important;
+      min-height: 46px !important;
+      padding: 0 !important;
+      border-radius: 50% !important;
+      border: 1px solid rgba(123, 18, 79, .16) !important;
+      background: linear-gradient(180deg, #fff, #fff5eb) !important;
+      color: transparent !important;
+      box-shadow: 0 14px 28px rgba(50, 8, 34, .12) !important;
+      cursor: pointer !important;
+      transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease !important;
+    }
+
+    #closeProductDialog::before,
+    #closeProductDialog::after {
+      content: '' !important;
+      position: absolute !important;
+      left: 50% !important;
+      top: 50% !important;
+      width: 16px !important;
+      height: 2px !important;
+      border-radius: 2px !important;
+      background: #5b103d !important;
+      transform-origin: center !important;
+    }
+
+    #closeProductDialog::before {
+      transform: translate(-50%, -50%) rotate(45deg) !important;
+    }
+
+    #closeProductDialog::after {
+      transform: translate(-50%, -50%) rotate(-45deg) !important;
+    }
+
+    #closeProductDialog:hover {
+      transform: translateY(-1px) !important;
+      border-color: rgba(123, 18, 79, .34) !important;
+      box-shadow: 0 18px 34px rgba(50, 8, 34, .18) !important;
+    }
+
     #productDialog .product-form-grid {
       min-height: 0 !important;
       display: grid !important;
-      grid-template-columns: minmax(0, 1.1fr) minmax(500px, .95fr) !important;
+      grid-template-columns: minmax(0, 1.05fr) minmax(460px, .9fr) !important;
       gap: 24px !important;
       overflow: hidden !important;
     }
@@ -2418,57 +1567,71 @@ requireSession();
       resize: none !important;
     }
 
-    /* Правая часть с фото */
     #productDialog .image-box {
       display: grid !important;
       grid-template-rows: auto auto auto minmax(0, 1fr) auto !important;
-      gap: 11px !important;
+      gap: 12px !important;
       align-content: start !important;
     }
 
-    /* Главное фото крупнее */
     #imagePreview {
+      position: relative !important;
       width: 100% !important;
-      height: 285px !important;
-      min-height: 285px !important;
-      max-height: 285px !important;
-      border-radius: 26px !important;
-      border: 1px dashed rgba(123, 18, 79, .26) !important;
+      height: clamp(292px, 38vh, 360px) !important;
+      min-height: 292px !important;
+      border-radius: 24px !important;
+      border: 1px solid rgba(123, 18, 79, .16) !important;
       display: grid !important;
       place-items: center !important;
       overflow: hidden !important;
       background:
-        radial-gradient(circle at 50% 0%, rgba(255, 224, 186, .6), transparent 48%),
-        rgba(255, 255, 255, .78) !important;
+        linear-gradient(135deg, rgba(255,255,255,.88), rgba(255,248,239,.78)),
+        repeating-linear-gradient(45deg, rgba(123,18,79,.045) 0 10px, rgba(242,169,0,.055) 10px 20px) !important;
       color: rgba(77, 10, 51, .42) !important;
       font-size: 17px !important;
       font-weight: 950 !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.82), 0 18px 40px rgba(50, 8, 34, .08) !important;
     }
 
     #imagePreview img {
       width: 100% !important;
-      height: 285px !important;
+      height: 100% !important;
       object-fit: contain !important;
       object-position: center !important;
       display: block !important;
-      background: #fff8ef !important;
+      padding: 12px !important;
+      box-sizing: border-box !important;
     }
 
-    /* Поле URL компактно */
+    #imagePreview .preview-badge {
+      position: absolute !important;
+      left: 14px !important;
+      top: 14px !important;
+      padding: 7px 11px !important;
+      border-radius: 999px !important;
+      background: rgba(255, 255, 255, .9) !important;
+      color: #5b103d !important;
+      box-shadow: 0 10px 24px rgba(50, 8, 34, .12) !important;
+      font-size: 12px !important;
+      font-weight: 950 !important;
+    }
+
+    #imagePreview .preview-empty {
+      color: rgba(77, 10, 51, .42) !important;
+    }
+
     #productDialog label:has(input[name="imageUrl"]) {
       margin-top: 0 !important;
     }
 
-    /* Блок фотографий товара */
     #productDialog .gallery-manager {
-      padding: 14px !important;
-      border-radius: 24px !important;
       min-height: 0 !important;
+      padding: 14px !important;
+      border-radius: 22px !important;
       overflow: hidden !important;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,248,239,.78)) !important;
+      background: linear-gradient(180deg, rgba(255,255,255,.82), rgba(255,248,239,.74)) !important;
       border: 1px solid rgba(123, 18, 79, .12) !important;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.7) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.78) !important;
     }
 
     #productDialog .gallery-head {
@@ -2491,52 +1654,59 @@ requireSession();
       color: rgba(77, 10, 51, .62) !important;
     }
 
-    /* 5 фото крупнее, чтобы реально было видно */
     #imageGalleryList {
       display: grid !important;
-      grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
       gap: 10px !important;
-      max-height: 205px !important;
-      overflow: hidden !important;
+      min-height: 0 !important;
+      max-height: 310px !important;
+      overflow-y: auto !important;
+      padding: 2px 3px 4px !important;
       margin-top: 0 !important;
-      padding-bottom: 2px !important;
+      scrollbar-width: thin !important;
     }
 
     #imageGalleryList .gallery-slot,
     #imageGalleryList .gallery-item {
       position: relative !important;
-      height: 195px !important;
-      min-height: 195px !important;
-      border-radius: 20px !important;
+      min-height: 142px !important;
+      border-radius: 18px !important;
       overflow: hidden !important;
-      background: rgba(255, 255, 255, .92) !important;
-      border: 1px solid rgba(123, 18, 79, .14) !important;
-      box-shadow: 0 12px 26px rgba(50, 8, 34, .09) !important;
       box-sizing: border-box !important;
     }
 
     #imageGalleryList .gallery-slot {
       display: grid !important;
       place-items: center !important;
-      color: rgba(77, 10, 51, .3) !important;
+      color: rgba(77, 10, 51, .28) !important;
       font-size: 22px !important;
       font-weight: 950 !important;
-      border-style: dashed !important;
-      box-shadow: none !important;
+      border: 1px dashed rgba(123, 18, 79, .18) !important;
       background: rgba(255,255,255,.48) !important;
+    }
+
+    #imageGalleryList .gallery-slot span {
+      width: 36px !important;
+      height: 36px !important;
+      display: grid !important;
+      place-items: center !important;
+      border-radius: 999px !important;
+      background: rgba(255,255,255,.72) !important;
     }
 
     #imageGalleryList .gallery-item {
       cursor: grab !important;
-      transition:
-        transform 150ms ease,
-        box-shadow 150ms ease,
-        border-color 150ms ease !important;
+      background: #fff !important;
+      border: 1px solid rgba(123, 18, 79, .14) !important;
+      box-shadow: 0 12px 26px rgba(50, 8, 34, .1) !important;
+      transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease !important;
     }
 
-    #imageGalleryList .gallery-item:hover {
+    #imageGalleryList .gallery-item:hover,
+    #imageGalleryList .gallery-item.is-drop-target {
       transform: translateY(-2px) !important;
-      box-shadow: 0 18px 34px rgba(50, 8, 34, .14) !important;
+      border-color: rgba(123, 18, 79, .34) !important;
+      box-shadow: 0 18px 34px rgba(50, 8, 34, .16) !important;
     }
 
     #imageGalleryList .gallery-item:active {
@@ -2550,27 +1720,37 @@ requireSession();
 
     #imageGalleryList .gallery-item.is-cover {
       border: 2px solid #f2a900 !important;
-      box-shadow: 0 18px 36px rgba(242, 169, 0, .22) !important;
+      box-shadow: 0 18px 36px rgba(242, 169, 0, .2) !important;
+    }
+
+    #imageGalleryList .gallery-image-wrap {
+      height: 96px !important;
+      overflow: hidden !important;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.58), rgba(255,248,239,.86)),
+        repeating-linear-gradient(45deg, rgba(123,18,79,.04) 0 8px, rgba(242,169,0,.045) 8px 16px) !important;
     }
 
     #imageGalleryList .gallery-item img {
       width: 100% !important;
-      height: 142px !important;
-      object-fit: contain !important;
+      height: 100% !important;
+      object-fit: cover !important;
       object-position: center !important;
       display: block !important;
-      padding: 8px !important;
+    }
+
+    #imageGalleryList .gallery-item.is-cover img {
+      object-fit: contain !important;
+      padding: 6px !important;
       box-sizing: border-box !important;
-      background:
-        radial-gradient(circle at 50% 0%, rgba(255, 224, 186, .38), transparent 45%),
-        #fff8ef !important;
     }
 
     #imageGalleryList .gallery-item-meta {
-      padding: 8px 9px !important;
+      min-height: 46px !important;
+      padding: 8px 10px !important;
       display: grid !important;
       gap: 2px !important;
-      background: rgba(255,255,255,.82) !important;
+      background: rgba(255,255,255,.9) !important;
     }
 
     #imageGalleryList .gallery-item-meta strong {
@@ -2584,48 +1764,61 @@ requireSession();
     }
 
     #imageGalleryList .gallery-item-meta span {
-      display: none !important;
+      font-size: 10px !important;
+      line-height: 1.15 !important;
+      color: rgba(77, 10, 51, .6) !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
     }
 
+    .gallery-order,
     .gallery-star,
     .gallery-remove {
       position: absolute !important;
       z-index: 3 !important;
       top: 8px !important;
-      width: 32px !important;
-      height: 32px !important;
-      min-width: 32px !important;
-      min-height: 32px !important;
-      max-width: 32px !important;
-      max-height: 32px !important;
+      width: 30px !important;
+      height: 30px !important;
+      min-width: 30px !important;
+      min-height: 30px !important;
       padding: 0 !important;
       border-radius: 999px !important;
       display: grid !important;
       place-items: center !important;
       border: 0 !important;
-      background: white !important;
-      box-shadow: 0 9px 20px rgba(0,0,0,.16) !important;
-      cursor: pointer !important;
-      font-size: 17px !important;
+      background: rgba(255,255,255,.94) !important;
+      box-shadow: 0 9px 20px rgba(0,0,0,.14) !important;
       line-height: 1 !important;
     }
 
-    .gallery-star {
+    .gallery-order {
       left: 8px !important;
+      color: #4d0a33 !important;
+      font-size: 12px !important;
+      font-weight: 950 !important;
+    }
+
+    .gallery-star {
+      left: 44px !important;
       color: #f2a900 !important;
+      cursor: pointer !important;
+      font-size: 16px !important;
     }
 
     .gallery-remove {
       right: 8px !important;
       color: #991b1b !important;
+      cursor: pointer !important;
+      font-size: 18px !important;
     }
 
+    .gallery-item.is-cover .gallery-order,
     .gallery-item.is-cover .gallery-star {
       background: #f2a900 !important;
-      color: white !important;
+      color: #fff !important;
     }
 
-    /* Подсказка короче */
     #productDialog .muted.small {
       font-size: 0 !important;
       line-height: 0 !important;
@@ -2633,23 +1826,22 @@ requireSession();
     }
 
     #productDialog .muted.small::after {
-      content: 'До 5 фото. ⭐ — обложка. Перетащи фото мышкой, чтобы изменить порядок.';
+      content: 'До 5 фото. Цифра — порядок на витрине, ★ — обложка. Перетащи карточку мышкой, чтобы изменить порядок.';
       display: block !important;
       font-size: 12px !important;
-      line-height: 1.25 !important;
+      line-height: 1.3 !important;
       color: rgba(77, 10, 51, .62) !important;
       margin-top: 4px !important;
       font-weight: 800 !important;
     }
 
-    /* Кнопки всегда внизу */
     #productDialog .dialog-actions {
       position: sticky !important;
       bottom: 0 !important;
       z-index: 10 !important;
       margin: 0 !important;
       padding-top: 12px !important;
-      background: rgba(255,248,239,.985) !important;
+      background: #fffaf3 !important;
     }
 
     #productDialog .dialog-actions button {
@@ -2667,29 +1859,37 @@ requireSession();
       }
 
       #productDialog .product-form-grid {
-        grid-template-columns: minmax(0, 1fr) minmax(420px, .9fr) !important;
+        grid-template-columns: minmax(0, 1fr) minmax(400px, .9fr) !important;
+        gap: 18px !important;
       }
 
-      #imageGalleryList .gallery-slot,
-      #imageGalleryList .gallery-item {
-        height: 170px !important;
-        min-height: 170px !important;
-      }
-
-      #imageGalleryList .gallery-item img {
-        height: 120px !important;
+      #imagePreview {
+        height: 292px !important;
       }
     }
 
     @media (max-width: 900px) {
+      #productDialog {
+        width: calc(100vw - 18px) !important;
+        max-height: calc(100vh - 18px) !important;
+        border-radius: 24px !important;
+      }
+
       #productDialog .dialog-card,
       #productDialog form {
         height: auto !important;
+        max-height: calc(100vh - 18px) !important;
         overflow: auto !important;
+        padding: 20px !important;
       }
 
       #productDialog .product-form-grid {
         grid-template-columns: 1fr !important;
+        overflow: visible !important;
+      }
+
+      #productDialog .form-stack,
+      #productDialog .image-box {
         overflow: visible !important;
       }
 
@@ -2701,4 +1901,8 @@ requireSession();
   `;
 
   document.head.appendChild(style);
-})();
+}
+
+bindEvents();
+injectAdminUiFixes();
+requireSession();
