@@ -35,6 +35,7 @@ let imageDraft = [];
 let isSaving = false;
 let draggedProductId = null;
 let draggedImageId = null;
+let photoHelpText = 'До 5 фото. ★ — обложка. Перетащи карточку за нижнюю ручку ⋮⋮, чтобы изменить порядок.';
 
 const els = {
   loginScreen: document.getElementById('loginScreen'),
@@ -739,6 +740,9 @@ function openProductDialog(productId = null) {
     type: 'url',
     url
   }));
+  photoHelpText = imageDraft.length
+    ? `В товаре ${imageDraft.length} фото. ★ — обложка, ⋮⋮ — перетащить.`
+    : 'До 5 фото. ★ — обложка. Перетащи карточку за нижнюю ручку ⋮⋮, чтобы изменить порядок.';
 
   renderImageDraft();
 
@@ -783,9 +787,6 @@ function renderImageDraft() {
   const photoHtml = photos.map((item, index) => {
     const itemSrc = imageItemSource(item);
     const label = index === 0 ? 'Обложка' : `Фото ${index + 1}`;
-    const photoStyle = itemSrc
-      ? ` style="--gallery-photo: url(&quot;${escapeHtml(itemSrc)}&quot;)"`
-      : '';
 
     return `
       <div class="gallery-item ${index === 0 ? 'is-cover' : ''}" draggable="true" data-image-id="${escapeHtml(item.id)}">
@@ -796,9 +797,7 @@ function renderImageDraft() {
             <button type="button" class="gallery-remove" data-image-remove="${escapeHtml(item.id)}" title="Удалить" aria-label="Удалить фото ${index + 1}">×</button>
           </span>
         </div>
-        <div class="gallery-image-wrap"${photoStyle}>
-          <img src="${escapeHtml(itemSrc)}" alt="${escapeHtml(label)}">
-        </div>
+        <img class="gallery-photo" src="${escapeHtml(itemSrc)}" alt="${escapeHtml(label)}" loading="eager">
         <div class="gallery-item-meta">
           <strong>${escapeHtml(label)}</strong>
           <span class="gallery-drag-handle" title="Перетащить фото">⋮⋮</span>
@@ -816,6 +815,7 @@ function renderImageDraft() {
     .join('');
 
   els.imageGalleryList.innerHTML = photoHtml + emptyHtml;
+  syncPhotoHelpText();
 
   els.imageGalleryList.querySelectorAll('[data-image-cover]').forEach((button) => {
     button.addEventListener('click', () => makeCoverImage(button.dataset.imageCover));
@@ -902,6 +902,22 @@ function renderImageDraft() {
   }
 }
 
+function formatFileSize(bytes) {
+  const size = Number(bytes || 0);
+
+  if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} КБ`;
+
+  return `${(size / (1024 * 1024)).toFixed(1).replace('.', ',')} МБ`;
+}
+
+function syncPhotoHelpText() {
+  const help = els.productForm?.querySelector('.muted.small');
+
+  if (!help) return;
+
+  help.dataset.help = photoHelpText;
+}
+
 function makeCoverImage(imageId) {
   const index = imageDraft.findIndex((item) => item.id === imageId);
 
@@ -917,6 +933,9 @@ function removeImage(imageId) {
   const removed = imageDraft.find((item) => item.id === imageId);
   releaseImagePreview(removed);
   imageDraft = imageDraft.filter((item) => item.id !== imageId);
+  photoHelpText = imageDraft.length
+    ? `Осталось ${imageDraft.length} фото. ★ — обложка, ⋮⋮ — перетащить.`
+    : 'До 5 фото. ★ — обложка. Перетащи карточку за нижнюю ручку ⋮⋮, чтобы изменить порядок.';
   renderImageDraft();
 }
 
@@ -959,6 +978,7 @@ function addUrlImage() {
       type: 'url',
       url
     });
+    photoHelpText = `Фото по URL добавлено. Сейчас ${imageDraft.length} фото. ★ — обложка, ⋮⋮ — перетащить.`;
     setStatus('Фото по URL добавлено.', 'ok');
   }
 
@@ -999,6 +1019,8 @@ async function addFileImages(files) {
   }
 
   const selected = incoming.slice(0, freeSlots);
+  const beforeSize = selected.reduce((sum, file) => sum + (file.size || 0), 0);
+  let afterSize = 0;
 
   setStatus(`Готовлю фото: ${selected.length} шт...`);
 
@@ -1007,6 +1029,7 @@ async function addFileImages(files) {
       const file = selected[index];
       const willBeCover = imageDraft.length === 0 && index === 0;
       const preparedFile = await compressImageFile(file, willBeCover);
+      afterSize += preparedFile.size || 0;
 
       imageDraft.push({
         id: uid('img'),
@@ -1015,6 +1038,14 @@ async function addFileImages(files) {
         previewUrl: URL.createObjectURL(preparedFile)
       });
     }
+
+    const savedPercent = beforeSize > 0
+      ? Math.max(0, Math.round(((beforeSize - afterSize) / beforeSize) * 100))
+      : 0;
+
+    photoHelpText = savedPercent > 0
+      ? `Добавлено ${selected.length} фото. Сжато: ${formatFileSize(beforeSize)} → ${formatFileSize(afterSize)}, экономия ${savedPercent}%. ★ — обложка, ⋮⋮ — перетащить.`
+      : `Добавлено ${selected.length} фото. Размер: ${formatFileSize(afterSize || beforeSize)}. ★ — обложка, ⋮⋮ — перетащить.`;
 
     renderImageDraft();
 
@@ -1788,26 +1819,12 @@ function injectAdminUiFixes() {
       box-shadow: 0 18px 36px rgba(242, 169, 0, .2) !important;
     }
 
-    #imageGalleryList .gallery-image-wrap {
-      min-height: 0 !important;
+    #imageGalleryList .gallery-photo,
+    #imageGalleryList .gallery-item img.gallery-photo {
+      width: 100% !important;
       height: 104px !important;
       min-height: 104px !important;
       max-height: 104px !important;
-      overflow: hidden !important;
-      display: grid !important;
-      place-items: center !important;
-      background-image:
-        var(--gallery-photo),
-        linear-gradient(135deg, rgba(255,255,255,.58), rgba(255,248,239,.86)),
-        repeating-linear-gradient(45deg, rgba(123,18,79,.04) 0 8px, rgba(242,169,0,.045) 8px 16px) !important;
-      background-size: contain, cover, auto !important;
-      background-position: center !important;
-      background-repeat: no-repeat !important;
-    }
-
-    #imageGalleryList .gallery-item img {
-      width: 100% !important;
-      height: 100% !important;
       max-width: 100% !important;
       max-height: 100% !important;
       object-fit: contain !important;
@@ -1815,9 +1832,12 @@ function injectAdminUiFixes() {
       display: block !important;
       padding: 4px !important;
       box-sizing: border-box !important;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.58), rgba(255,248,239,.86)),
+        repeating-linear-gradient(45deg, rgba(123,18,79,.04) 0 8px, rgba(242,169,0,.045) 8px 16px) !important;
     }
 
-    #imageGalleryList .gallery-item.is-cover img {
+    #imageGalleryList .gallery-item.is-cover .gallery-photo {
       object-fit: contain !important;
       padding: 4px !important;
       box-sizing: border-box !important;
@@ -1966,7 +1986,7 @@ function injectAdminUiFixes() {
     }
 
     #productDialog .muted.small::after {
-      content: 'До 5 фото. ★ — обложка. Перетащи карточку за нижнюю ручку ⋮⋮, чтобы изменить порядок.';
+      content: attr(data-help);
       display: block !important;
       font-size: 11px !important;
       line-height: 1.25 !important;
