@@ -783,6 +783,9 @@ function renderImageDraft() {
   const photoHtml = photos.map((item, index) => {
     const itemSrc = imageItemSource(item);
     const label = index === 0 ? 'Обложка' : `Фото ${index + 1}`;
+    const photoStyle = itemSrc
+      ? ` style="--gallery-photo: url(&quot;${escapeHtml(itemSrc)}&quot;)"`
+      : '';
 
     return `
       <div class="gallery-item ${index === 0 ? 'is-cover' : ''}" draggable="true" data-image-id="${escapeHtml(item.id)}">
@@ -793,7 +796,7 @@ function renderImageDraft() {
             <button type="button" class="gallery-remove" data-image-remove="${escapeHtml(item.id)}" title="Удалить" aria-label="Удалить фото ${index + 1}">×</button>
           </span>
         </div>
-        <div class="gallery-image-wrap">
+        <div class="gallery-image-wrap"${photoStyle}>
           <img src="${escapeHtml(itemSrc)}" alt="${escapeHtml(label)}">
         </div>
         <div class="gallery-item-meta">
@@ -1793,9 +1796,13 @@ function injectAdminUiFixes() {
       overflow: hidden !important;
       display: grid !important;
       place-items: center !important;
-      background:
+      background-image:
+        var(--gallery-photo),
         linear-gradient(135deg, rgba(255,255,255,.58), rgba(255,248,239,.86)),
         repeating-linear-gradient(45deg, rgba(123,18,79,.04) 0 8px, rgba(242,169,0,.045) 8px 16px) !important;
+      background-size: contain, cover, auto !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
     }
 
     #imageGalleryList .gallery-item img {
