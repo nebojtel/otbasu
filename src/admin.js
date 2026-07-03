@@ -1758,7 +1758,7 @@ function injectAdminUiFixes() {
       border: 1px solid rgba(123, 18, 79, .14) !important;
       box-shadow: 0 12px 26px rgba(50, 8, 34, .1) !important;
       display: grid !important;
-      grid-template-rows: 32px minmax(0, 1fr) 36px !important;
+      grid-template-rows: 32px 104px 36px !important;
       transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, opacity 180ms ease !important;
       animation: galleryCardSettle 170ms ease both !important;
     }
@@ -1787,7 +1787,9 @@ function injectAdminUiFixes() {
 
     #imageGalleryList .gallery-image-wrap {
       min-height: 0 !important;
-      height: 100% !important;
+      height: 104px !important;
+      min-height: 104px !important;
+      max-height: 104px !important;
       overflow: hidden !important;
       display: grid !important;
       place-items: center !important;
@@ -1797,20 +1799,20 @@ function injectAdminUiFixes() {
     }
 
     #imageGalleryList .gallery-item img {
-      width: auto !important;
-      height: auto !important;
-      max-width: calc(100% - 8px) !important;
-      max-height: calc(100% - 6px) !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
       object-fit: contain !important;
       object-position: center !important;
       display: block !important;
-      padding: 0 !important;
+      padding: 4px !important;
       box-sizing: border-box !important;
     }
 
     #imageGalleryList .gallery-item.is-cover img {
       object-fit: contain !important;
-      padding: 0 !important;
+      padding: 4px !important;
       box-sizing: border-box !important;
     }
 
