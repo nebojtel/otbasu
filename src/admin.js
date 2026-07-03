@@ -1512,14 +1512,7 @@ requireSession();
   window.setTimeout(injectAdminImageSizeFix, 500);
 })();
 
-  document.addEventListener('click', () => {
-    window.setTimeout(addPhotoSizeHint, 300);
-    window.setTimeout(addPhotoSizeHint, 900);
-  });
-
-  injectPhotoHintStyles();
-  window.setTimeout(addPhotoSizeHint, 800);
-})();
+ 
 /* OTBASU ANALYTICS POLISH — SAFE
    Только внешний вид вкладки аналитики.
    Логику подсчёта, витрину, галерею и Supabase не трогаем.
