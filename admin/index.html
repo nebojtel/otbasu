@@ -326,21 +326,40 @@
           <label>Заметка<textarea name="note" rows="3" placeholder="Внутренняя заметка для администратора"></textarea></label>
         </div>
 
-        <div class="image-box">
-          <div class="image-preview" id="imagePreview"><span>Фото</span></div>
-          <label>Фото по URL<input name="imageUrl" type="text" inputmode="url" placeholder="https://.../photo.png"></label>
-          <button class="ghost-button compact" type="button" id="addImageUrlButton">+ Добавить URL в фото</button>
-          <label>Или загрузить файлы<input name="imageFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label>
-          <div class="gallery-manager">
-            <div class="gallery-head">
-              <strong>Фотографии товара</strong>
-              <span>первая — обложка</span>
-            </div>
-            <div class="gallery-list" id="imageGalleryList"></div>
-          </div>
-          <p class="muted small">Можно добавить несколько фото, менять порядок кнопками ↑ / ↓ и удалить лишние. На витрине клик по фото откроет галерею.</p>
-        </div>
-      </div>
+<div class="image-box">
+  <div class="image-preview big-image-preview" id="imagePreview">
+    <span>Главное фото</span>
+  </div>
+
+  <label>
+    Фото по URL
+    <input name="imageUrl" type="text" inputmode="url" placeholder="https://.../photo.png">
+  </label>
+
+  <button class="ghost-button compact" type="button" id="addImageUrlButton">
+    + Добавить URL в фото
+  </button>
+
+  <label>
+    Или загрузить файлы
+    <input name="imageFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple>
+  </label>
+
+  <input type="hidden" name="imageUrls" id="imageUrlsJson">
+
+  <div class="gallery-manager">
+    <div class="gallery-head">
+      <strong>Фотографии товара</strong>
+      <span>⭐ — обложка</span>
+    </div>
+
+    <div class="gallery-list big-gallery-list" id="imageGalleryList"></div>
+  </div>
+
+  <p class="muted small">
+    Фото теперь крупные. Нажми ⭐, чтобы сделать фото первым. Для порядка — зажми фото мышкой и перетащи.
+  </p>
+</div>
 
       <div class="dialog-actions">
         <button class="ghost-button" type="button" id="deleteProductButton">Удалить</button>
