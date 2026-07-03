@@ -2924,3 +2924,106 @@ requireSession();
   window.setTimeout(initTurnstileProtection, 500);
   window.setTimeout(initTurnstileProtection, 1500);
 })();
+let productGalleryImages = [];
+
+function syncGalleryToForm() {
+  const hidden = document.getElementById('imageUrlsJson');
+  const imageInput = document.querySelector('[name="imageUrl"]');
+
+  if (hidden) hidden.value = JSON.stringify(productGalleryImages);
+  if (imageInput) imageInput.value = productGalleryImages[0] || '';
+
+  const preview = document.getElementById('imagePreview');
+  if (preview) {
+    preview.style.backgroundImage = productGalleryImages[0] ? `url("${productGalleryImages[0]}")` : '';
+    preview.innerHTML = productGalleryImages[0] ? '' : '<span>Главное фото</span>';
+  }
+}
+
+function renderBigGallery() {
+  const list = document.getElementById('imageGalleryList');
+  if (!list) return;
+
+  list.innerHTML = productGalleryImages.map((url, index) => `
+    <div class="gallery-photo-card ${index === 0 ? 'is-main' : ''}" draggable="true" data-index="${index}">
+      <img src="${url}" alt="Фото товара">
+      <button type="button" class="gallery-star">★</button>
+      <button type="button" class="gallery-delete">×</button>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.gallery-star').forEach(button => {
+    button.onclick = () => {
+      const card = button.closest('.gallery-photo-card');
+      const index = Number(card.dataset.index);
+      const selected = productGalleryImages.splice(index, 1)[0];
+      productGalleryImages.unshift(selected);
+      syncGalleryToForm();
+      renderBigGallery();
+    };
+  });
+
+  list.querySelectorAll('.gallery-delete').forEach(button => {
+    button.onclick = () => {
+      const card = button.closest('.gallery-photo-card');
+      const index = Number(card.dataset.index);
+      productGalleryImages.splice(index, 1);
+      syncGalleryToForm();
+      renderBigGallery();
+    };
+  });
+
+  list.querySelectorAll('.gallery-photo-card').forEach(card => {
+    card.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', card.dataset.index);
+    });
+
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+    });
+
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+
+      const from = Number(e.dataTransfer.getData('text/plain'));
+      const to = Number(card.dataset.index);
+
+      if (from === to) return;
+
+      const moved = productGalleryImages.splice(from, 1)[0];
+      productGalleryImages.splice(to, 0, moved);
+
+      syncGalleryToForm();
+      renderBigGallery();
+    });
+  });
+}
+
+document.getElementById('addImageUrlButton')?.addEventListener('click', () => {
+  const input = document.querySelector('[name="imageUrl"]');
+  const url = input?.value?.trim();
+
+  if (!url) return;
+
+  if (!productGalleryImages.includes(url)) {
+    productGalleryImages.push(url);
+  }
+
+  syncGalleryToForm();
+  renderBigGallery();
+});
+
+document.querySelector('[name="imageFile"]')?.addEventListener('change', event => {
+  const files = Array.from(event.target.files || []);
+
+  files.forEach(file => {
+    const localUrl = URL.createObjectURL(file);
+
+    if (!productGalleryImages.includes(localUrl)) {
+      productGalleryImages.push(localUrl);
+    }
+  });
+
+  syncGalleryToForm();
+  renderBigGallery();
+});
