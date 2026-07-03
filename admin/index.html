@@ -327,7 +327,7 @@
         </div>
 
 <div class="image-box">
-  <div class="image-preview big-image-preview" id="imagePreview">
+  <div class="image-preview" id="imagePreview">
     <span>Главное фото</span>
   </div>
 
@@ -336,16 +336,10 @@
     <input name="imageUrl" type="text" inputmode="url" placeholder="https://.../photo.png">
   </label>
 
-  <button class="ghost-button compact" type="button" id="addImageUrlButton">
-    + Добавить URL в фото
-  </button>
-
   <label>
     Или загрузить файлы
     <input name="imageFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple>
   </label>
-
-  <input type="hidden" name="imageUrls" id="imageUrlsJson">
 
   <div class="gallery-manager">
     <div class="gallery-head">
@@ -353,12 +347,10 @@
       <span>⭐ — обложка</span>
     </div>
 
-    <div class="gallery-list big-gallery-list" id="imageGalleryList"></div>
+    <div class="gallery-list" id="imageGalleryList"></div>
   </div>
 
-  <p class="muted small">
-    Фото теперь крупные. Нажми ⭐, чтобы сделать фото первым. Для порядка — зажми фото мышкой и перетащи.
-  </p>
+  <p class="muted small">До 5 фото. Цифра — порядок на витрине, ⭐ — обложка. Перетащи карточку мышкой, чтобы изменить порядок.</p>
 </div>
 
       <div class="dialog-actions">
