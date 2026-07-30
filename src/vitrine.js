@@ -25,15 +25,11 @@ const fallbackState = {
     { id: 'cat-video', name: 'Съемка', sort: 30 },
     { id: 'cat-care', name: 'Уход', sort: 40 }
   ],
-  products: [
-    { id: 'prod-diffuser', title: 'Умный увлажнитель воздуха', category: 'Дом', tag: 'hit', status: 'active', imageUrl: '/assets/product-diffuser.png', images: ['/assets/product-diffuser.png', '/assets/gallery-diffuser-2.svg', '/assets/gallery-diffuser-3.svg'], kaspiUrl: '#', videoUrl: '#', sort: 10 },
-    { id: 'prod-blender', title: 'Мини-блендер для смузи', category: 'Техника', tag: 'new', status: 'active', imageUrl: '/assets/product-blender.png', images: ['/assets/product-blender.png', '/assets/gallery-blender-2.svg', '/assets/gallery-blender-3.svg'], kaspiUrl: '#', videoUrl: '#', sort: 20 },
-    { id: 'prod-light', title: 'LED-лампа для съемки', category: 'Съемка', tag: 'promo', status: 'active', imageUrl: '/assets/product-light.png', images: ['/assets/product-light.png', '/assets/gallery-light-2.svg', '/assets/gallery-light-3.svg'], kaspiUrl: '#', videoUrl: '#', sort: 30 },
-    { id: 'prod-organizer', title: 'Органайзер для косметики', category: 'Уход', tag: 'new', status: 'active', imageUrl: '/assets/product-organizer.png', images: ['/assets/product-organizer.png', '/assets/gallery-organizer-2.svg', '/assets/gallery-organizer-3.svg'], kaspiUrl: '#', videoUrl: '#', sort: 40 }
-  ]
+  products: []
 };
 
 let state = fallbackState;
+let loadStatus = 'loading';
 let currentTab = 'all';
 let currentCategory = 'all';
 let sortMode = 'manual';
@@ -77,9 +73,30 @@ function getSessionId() {
   }
 }
 
+function addImageCacheVersion(url, version) {
+  const normalized = normalizeExternalUrl(url);
+  if (!normalized || !version || normalized.startsWith('data:') || normalized.startsWith('blob:')) {
+    return normalized;
+  }
+
+  try {
+    const parsed = new URL(normalized, window.location.href);
+    parsed.searchParams.set('v', String(version));
+    return parsed.href;
+  } catch (_) {
+    return normalized;
+  }
+}
+
 function dbProductToUi(product = {}) {
-  const images = Array.isArray(product.images) ? product.images.map(normalizeExternalUrl).filter(Boolean) : [];
-  const imageUrl = normalizeExternalUrl(product.image_url || product.imageUrl || images[0] || fallbackImage());
+  const imageVersion = product.updated_at || product.updatedAt || product.created_at || '';
+  const images = Array.isArray(product.images)
+    ? product.images.map((url) => addImageCacheVersion(url, imageVersion)).filter(Boolean)
+    : [];
+  const imageUrl = addImageCacheVersion(
+    product.image_url || product.imageUrl || images[0] || fallbackImage(),
+    imageVersion
+  ) || fallbackImage();
   return {
     id: product.id,
     title: product.title || 'Без названия',
@@ -91,12 +108,30 @@ function dbProductToUi(product = {}) {
     kaspiUrl: normalizeExternalUrl(product.kaspi_url || product.kaspiUrl || ''),
     videoUrl: normalizeExternalUrl(product.video_url || product.videoUrl || ''),
     sort: Number.isFinite(Number(product.sort)) ? Number(product.sort) : 100,
-    note: product.note || ''
+    note: product.note || '',
+    updatedAt: imageVersion
   };
 }
 
+function renderLoadingState() {
+  if (!els.list) return;
+  disconnectObserver();
+  els.list.setAttribute('aria-busy', 'true');
+  els.list.innerHTML = `
+    <div class="empty-state">
+      <strong>Загружаем товары…</strong>
+      <span>Пожалуйста, подождите немного.</span>
+    </div>`;
+  if (els.counter) els.counter.textContent = 'Загрузка…';
+}
+
 async function loadState() {
+  loadStatus = 'loading';
+  renderLoadingState();
+
   if (!isConfigured()) {
+    loadStatus = 'error';
+    state = { ...fallbackState, categories: [], products: [] };
     applySettings(fallbackState.settings);
     renderProducts();
     return;
@@ -115,12 +150,14 @@ async function loadState() {
 
     state = {
       settings: settings || fallbackState.settings,
-      categories: Array.isArray(categories) ? categories : fallbackState.categories,
-      products: Array.isArray(products) && products.length ? products.map(dbProductToUi) : fallbackState.products
+      categories: Array.isArray(categories) ? categories : [],
+      products: Array.isArray(products) ? products.map(dbProductToUi) : []
     };
+    loadStatus = 'ready';
   } catch (error) {
-    console.warn('Supabase load failed, using fallback data:', error.message);
-    state = fallbackState;
+    console.warn('Supabase load failed:', error.message);
+    loadStatus = 'error';
+    state = { ...fallbackState, categories: [], products: [] };
   }
 
   applySettings(state.settings);
@@ -169,11 +206,14 @@ function visibleProducts() {
 function renderProducts() {
   if (!els.list) return;
   disconnectObserver();
+  els.list.setAttribute('aria-busy', 'false');
 
   const items = visibleProducts();
   els.list.innerHTML = items.length
     ? items.map(renderProductCard).join('')
-    : `<div class="empty-state"><strong>Товаров пока нет</strong><span>Добавьте товар в админке или выберите другую вкладку.</span></div>`;
+    : loadStatus === 'error'
+      ? `<div class="empty-state"><strong>Не удалось загрузить товары</strong><span>Обновите страницу и попробуйте ещё раз.</span></div>`
+      : `<div class="empty-state"><strong>Товаров пока нет</strong><span>Добавьте товар в админке или выберите другую вкладку.</span></div>`;
 
   if (els.counter) els.counter.textContent = `${items.length} ${productWord(items.length)}`;
   if (els.catalogTitle) els.catalogTitle.textContent = currentTab === 'all'
