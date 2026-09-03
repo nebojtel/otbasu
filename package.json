@@ -3,15 +3,19 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
-    "check": "node --check api/admin/create-user.js && node --check src/admin.js && node --check src/vitrine.js"
+    "check": "node --check api/admin/create-user.js && node --check src/admin.js && node --check src/vitrine.js",
+    "audit:security": "npm audit --audit-level=high"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.50.0",
-    "vite": "^6.3.5"
+    "@supabase/supabase-js": "2.114.0",
+    "vite": "8.2.2"
   },
   "devDependencies": {}
 }
