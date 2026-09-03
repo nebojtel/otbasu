@@ -197,7 +197,7 @@ CREATE POLICY "products_manage_content" ON public.products
 -- Analytics
 DROP POLICY IF EXISTS "analytics_public_insert" ON public.analytics_events;
 CREATE POLICY "analytics_public_insert" ON public.analytics_events
-  FOR INSERT WITH CHECK (event_type in ('product_view', 'video_click', 'kaspi_click', 'tab_click', 'filter_change', 'gallery_open'));
+  FOR INSERT WITH CHECK (event_type in ('product_view', 'video_click', 'kaspi_click', 'filter_change', 'gallery_open'));
 
 DROP POLICY IF EXISTS "analytics_admin_read" ON public.analytics_events;
 CREATE POLICY "analytics_admin_read" ON public.analytics_events
@@ -253,3 +253,4 @@ on conflict do nothing;
 -- update public.profiles set role = 'admin', is_active = true where email = 'YOUR_EMAIL@example.com';
 -- If profile does not exist yet, create it with the Auth user's UUID from Dashboard:
 -- insert into public.profiles (id, email, full_name, role, is_active) values ('AUTH_USER_UUID', 'YOUR_EMAIL@example.com', 'Owner', 'admin', true)
+-- on conflict (id) do update set role = 'admin', is_active = true;
