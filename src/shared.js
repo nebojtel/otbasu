@@ -20,6 +20,9 @@ const FALLBACK_PRODUCT_IMAGE = `data:image/svg+xml;charset=utf-8,${encodeURIComp
 </svg>
 `)}`;
 
+const INVALID_URL_CHARS = /[\u0000-\u001F\u007F\s]/;
+const BARE_DOMAIN = /^[\w.-]+\.[a-zа-я]{2,}(?:[/:?#].*)?$/i;
+
 export function escapeHtml(value) {
   return String(value || '')
     .replace(/&/g, '&amp;')
@@ -31,20 +34,37 @@ export function escapeHtml(value) {
 
 export function normalizeExternalUrl(url) {
   const value = String(url || '').trim();
-  if (!value || value === '#') return '';
-  if (/^(https?:\/\/|\/)/i.test(value)) return value;
-  if (/^[\w.-]+\.[a-zа-я]{2,}(\/.*)?$/i.test(value)) return `https://${value}`;
-  return value;
+  if (!value || value === '#' || INVALID_URL_CHARS.test(value)) return '';
+
+  if (value.startsWith('/')) {
+    return value.startsWith('//') ? '' : value;
+  }
+
+  const candidate = BARE_DOMAIN.test(value) ? `https://${value}` : value;
+
+  try {
+    const parsed = new URL(candidate);
+
+    if (!parsed.hostname || !['http:', 'https:'].includes(parsed.protocol)) {
+      return '';
+    }
+
+    if (parsed.protocol === 'http:') {
+      parsed.protocol = 'https:';
+    }
+
+    return parsed.href;
+  } catch (_) {
+    return '';
+  }
 }
 
 export function isSafeUrl(url) {
-  const value = normalizeExternalUrl(url);
-  return /^(https?:\/\/|\/)/i.test(value);
+  return Boolean(normalizeExternalUrl(url));
 }
 
 export function safeHref(url) {
-  const value = normalizeExternalUrl(url);
-  return isSafeUrl(value) ? value : '#';
+  return normalizeExternalUrl(url) || '#';
 }
 
 export function uid(prefix = 'id') {
