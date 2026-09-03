@@ -26,7 +26,10 @@ jobs:
           package-manager-cache: false
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm install --no-fund
+
+      - name: Security audit
+        run: npm run audit:security
 
       - name: Syntax check
         run: npm run check
