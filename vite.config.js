@@ -5,9 +5,9 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
-        admin: resolve(__dirname, 'admin/index.html'),
-        vitrine: resolve(__dirname, 'vitrine/index.html')
+        main: resolve(import.meta.dirname, 'index.html'),
+        admin: resolve(import.meta.dirname, 'admin/index.html'),
+        vitrine: resolve(import.meta.dirname, 'vitrine/index.html')
       }
     }
   }
