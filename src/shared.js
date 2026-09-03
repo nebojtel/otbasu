@@ -2,6 +2,24 @@ export const tagLabels = { none: 'Без метки', hit: 'Хит', new: 'Но�
 export const badgeClasses = { hit: 'badge-hit', new: 'badge-new', promo: 'badge-sale', none: '' };
 export const statusLabels = { active: 'Опубликован', draft: 'Черновик', hidden: 'Скрыт' };
 
+const FALLBACK_PRODUCT_IMAGE = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+  <defs>
+    <linearGradient id="bg" x1="38" y1="26" x2="282" y2="294" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff8ed"/>
+      <stop offset="1" stop-color="#efd8bb"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="112" y1="96" x2="214" y2="224" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#c78a32"/>
+      <stop offset="1" stop-color="#4f1d42"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="320" rx="32" fill="url(#bg)"/>
+  <circle cx="160" cy="144" r="54" fill="none" stroke="url(#mark)" stroke-width="10" opacity=".78"/>
+  <path d="M96 226c22-34 47-50 76-50 23 0 44 10 64 31 8 8 6 23-5 28H107c-11 0-17-10-11-19z" fill="url(#mark)" opacity=".7"/>
+</svg>
+`)}`;
+
 export function escapeHtml(value) {
   return String(value || '')
     .replace(/&/g, '&amp;')
@@ -58,5 +76,5 @@ export function productWord(count) {
 }
 
 export function fallbackImage() {
-  return '/assets/product-diffuser.png';
+  return FALLBACK_PRODUCT_IMAGE;
 }
