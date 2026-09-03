@@ -246,16 +246,10 @@ insert into public.categories (name, sort, is_active)
 values ('Дом', 10, true), ('Техника', 20, true), ('Съемка', 30, true), ('Уход', 40, true)
 on conflict do nothing;
 
-insert into public.products (id, title, category, tag, status, image_url, images, kaspi_url, video_url, sort, note)
-values
-('11111111-1111-4111-8111-111111111111', 'Умный увлажнитель воздуха', 'Дом', 'hit', 'active', '/assets/product-diffuser.png', '["/assets/product-diffuser.png", "/assets/gallery-diffuser-2.svg", "/assets/gallery-diffuser-3.svg", "/assets/gallery-diffuser-4.svg", "/assets/gallery-diffuser-5.svg"]'::jsonb, '', '', 10, ''),
-('22222222-2222-4222-8222-222222222222', 'Мини-блендер для смузи', 'Техника', 'new', 'active', '/assets/product-blender.png', '["/assets/product-blender.png", "/assets/gallery-blender-2.svg", "/assets/gallery-blender-3.svg", "/assets/gallery-blender-4.svg", "/assets/gallery-blender-5.svg"]'::jsonb, '', '', 20, ''),
-('33333333-3333-4333-8333-333333333333', 'LED-лампа для съемки', 'Съемка', 'promo', 'active', '/assets/product-light.png', '["/assets/product-light.png", "/assets/gallery-light-2.svg", "/assets/gallery-light-3.svg", "/assets/gallery-light-4.svg", "/assets/gallery-light-5.svg"]'::jsonb, '', '', 30, ''),
-('44444444-4444-4444-8444-444444444444', 'Органайзер для косметики', 'Уход', 'new', 'active', '/assets/product-organizer.png', '["/assets/product-organizer.png", "/assets/gallery-organizer-2.svg", "/assets/gallery-organizer-3.svg", "/assets/gallery-organizer-4.svg", "/assets/gallery-organizer-5.svg"]'::jsonb, '', '', 40, '')
-on conflict (id) do nothing;
+-- Demo product seed data was intentionally removed from production.
+-- Real products are managed in the admin panel and loaded from Supabase.
 
 -- After creating your first Auth user in Supabase Dashboard, run this once with your email:
 -- update public.profiles set role = 'admin', is_active = true where email = 'YOUR_EMAIL@example.com';
 -- If profile does not exist yet, create it with the Auth user's UUID from Dashboard:
 -- insert into public.profiles (id, email, full_name, role, is_active) values ('AUTH_USER_UUID', 'YOUR_EMAIL@example.com', 'Owner', 'admin', true)
--- on conflict (id) do update set role = 'admin', is_active = true;
