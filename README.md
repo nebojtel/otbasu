@@ -8,8 +8,9 @@
 - `/admin/` — защищённая админка ОТБАСЫ.
 - `/src/` — логика Supabase, витрины и админки.
 - `/api/admin/create-user.js` — защищённая Vercel API-функция для создания пользователей админки.
-- `/supabase/schema.sql` — таблицы, роли, RLS-политики, Storage bucket, начальные товары.
+- `/supabase/schema.sql` — таблицы, роли, RLS-политики, Storage bucket, начальные настройки и категории.
 - `/public/assets/` — дизайн-ассеты витрины, отдающиеся на сайте как `/assets/...`.
+- `.github/workflows/` — автоматические проверки сборки, npm audit и CodeQL.
 
 Удалено из production-сборки:
 
@@ -19,7 +20,8 @@
 - все `.bat/.cmd/.sh` запускатели;
 - локальные `data/*.json`;
 - локальная папка `uploads`;
-- тестовые патчи и dev-файлы.
+- тестовые патчи и dev-файлы;
+- демо-товары из seed-данных.
 
 ## Роли
 
@@ -66,6 +68,16 @@ npm run dev
 http://127.0.0.1:5173/vitrine/
 http://127.0.0.1:5173/admin/
 ```
+
+## Проверки
+
+```bash
+npm run audit:security
+npm run check
+npm run build
+```
+
+Эти же проверки запускаются в GitHub Actions при изменениях в `main` и pull request.
 
 ## Деплой
 
