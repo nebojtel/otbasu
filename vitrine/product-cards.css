@@ -45,6 +45,46 @@
   display: none !important;
 }
 
+.product.shop-card .shop-card__track {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
+}
+
+.product.shop-card .shop-card__track::-webkit-scrollbar {
+  display: none;
+}
+
+.product.shop-card .shop-card__slide {
+  appearance: none;
+  position: relative;
+  flex: 0 0 100%;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #f7f5f5;
+  color: inherit;
+  font: inherit;
+  line-height: 0;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  cursor: zoom-in;
+}
+
 .product.shop-card .shop-card__image {
   display: block;
   width: 100%;
@@ -54,6 +94,112 @@
   object-position: center;
   border-radius: 0 !important;
   box-shadow: none !important;
+  transform-origin: center;
+}
+
+.product.shop-card .shop-card__arrow {
+  appearance: none;
+  position: absolute;
+  top: 50%;
+  z-index: 6;
+  display: none;
+  place-items: center;
+  width: 40px;
+  height: 44px;
+  margin: 0;
+  padding: 0 0 3px;
+  border: 1px solid rgba(63, 34, 50, .15);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .9);
+  color: #432332;
+  font-family: Arial, sans-serif;
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1;
+  box-shadow: 0 4px 14px rgba(40, 19, 30, .14);
+  transform: translateY(-50%);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: opacity 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+.product.shop-card .shop-card__arrow--prev {
+  left: 10px;
+}
+
+.product.shop-card .shop-card__arrow--next {
+  right: 10px;
+}
+
+.product.shop-card .shop-card__arrow:hover {
+  background: #fff;
+  transform: translateY(-50%) scale(1.04);
+}
+
+.product.shop-card .shop-card__arrow:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.product.shop-card .shop-card__position {
+  position: absolute;
+  left: 50%;
+  bottom: 15px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 52px;
+  min-height: 16px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(35, 18, 28, .28);
+  box-shadow: 0 2px 8px rgba(28, 13, 22, .12);
+  transform: translateX(-50%);
+  pointer-events: none;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.product.shop-card .shop-card__position i {
+  display: block;
+  width: 8px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, .58);
+  transition: width 150ms ease, background-color 150ms ease;
+}
+
+.product.shop-card .shop-card__position i.is-active {
+  width: 16px;
+  background: #fff;
+}
+
+.product.shop-card .shop-card__media.is-inline-zoomed {
+  cursor: zoom-out;
+}
+
+.product.shop-card .shop-card__media.is-inline-zoomed .shop-card__track {
+  overflow: hidden;
+  scroll-snap-type: none;
+  touch-action: none;
+}
+
+.product.shop-card .shop-card__media.is-inline-zoomed .shop-card__slide {
+  cursor: move;
+}
+
+.product.shop-card .shop-card__media.is-inline-zoomed .shop-card__image {
+  will-change: transform;
+}
+
+.product.shop-card .shop-card__media.is-inline-zoomed .shop-card__arrow,
+.product.shop-card .shop-card__media.is-inline-zoomed .shop-card__position,
+.product.shop-card .shop-card__media.is-inline-zoomed .otbasu-photo-count-badge {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .product.shop-card .otbasu-photo-count-badge {
@@ -265,9 +411,16 @@
 }
 
 .product.shop-card .shop-card__actions a:focus-visible,
-.product.shop-card .shop-card__media:focus-visible {
+.product.shop-card .shop-card__slide:focus-visible,
+.product.shop-card .shop-card__arrow:focus-visible {
   outline: 3px solid rgba(122, 71, 132, .35);
   outline-offset: -3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .product.shop-card .shop-card__arrow {
+    display: grid;
+  }
 }
 
 @media (max-width: 360px) {
@@ -325,7 +478,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .product.shop-card .shop-card__actions a {
+  .product.shop-card .shop-card__actions a,
+  .product.shop-card .shop-card__image,
+  .product.shop-card .shop-card__arrow,
+  .product.shop-card .shop-card__position i {
     transition: none;
+  }
+
+  .product.shop-card .shop-card__track {
+    scroll-behavior: auto;
   }
 }
