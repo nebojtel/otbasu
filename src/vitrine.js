@@ -230,25 +230,27 @@ function renderProductCard(product) {
   const badgeText = badgeClass ? tagLabels[product.tag] || '' : '';
   const highlight = getProductHighlight(product);
   const image = product.imageUrl || product.images?.[0] || fallbackImage();
-  const safeKaspi = safeHref(product.kaspiUrl);
+  const safeKaspi = safeHref(product.kaspiUrl || state.settings?.kaspiStoreUrl);
   const safeVideo = safeHref(product.videoUrl);
+  const videoEnabled = safeVideo !== '#';
+  const kaspiEnabled = safeKaspi !== '#';
   return `
-    <article class="product" data-product-id="${escapeHtml(product.id)}">
-      <div class="product-media" data-gallery-open="${escapeHtml(product.id)}" role="button" tabindex="0" aria-label="Открыть фото товара ${escapeHtml(product.title)}">
-        <img class="photo" src="${escapeHtml(image)}" alt="${escapeHtml(product.title)}" loading="lazy" decoding="async">
+    <article class="product shop-card" data-product-id="${escapeHtml(product.id)}">
+      <div class="product-media shop-card__media" data-gallery-open="${escapeHtml(product.id)}" role="button" tabindex="0" aria-label="Открыть фото товара ${escapeHtml(product.title)}">
+        <img class="photo shop-card__image" src="${escapeHtml(image)}" alt="${escapeHtml(product.title)}" loading="lazy" decoding="async">
       </div>
-      <div class="content">
-        <div class="product-details">
-          <div class="product-meta">
+      <div class="content shop-card__body">
+        <div class="product-details shop-card__details">
+          <div class="product-meta shop-card__meta">
             <p class="category-name">${escapeHtml(product.category)}</p>
             ${badgeText ? `<span class="product-badge ${badgeClass}">${escapeHtml(badgeText)}</span>` : ''}
           </div>
           <h2>${escapeHtml(product.title)}</h2>
           ${highlight ? `<p class="product-highlight">${escapeHtml(highlight)}</p>` : ''}
         </div>
-        <div class="actions">
-          <a class="video" href="${escapeHtml(safeVideo)}" target="_blank" rel="noopener noreferrer" data-action="video" data-enabled="${safeVideo !== '#'}"><span></span>Видео</a>
-          <a class="kaspi" href="${escapeHtml(safeKaspi)}" target="_blank" rel="noopener noreferrer" data-action="kaspi" data-enabled="${safeKaspi !== '#'}"><span></span>Kaspi</a>
+        <div class="actions shop-card__actions">
+          <a class="video" href="${escapeHtml(safeVideo)}" target="_blank" rel="noopener noreferrer" data-action="video" data-enabled="${videoEnabled}" aria-disabled="${!videoEnabled}"${videoEnabled ? '' : ' tabindex="-1"'} aria-label="Смотреть видео: ${escapeHtml(product.title)}"><span aria-hidden="true"></span>Видео</a>
+          <a class="kaspi" href="${escapeHtml(safeKaspi)}" target="_blank" rel="noopener noreferrer" data-action="kaspi" data-enabled="${kaspiEnabled}" aria-disabled="${!kaspiEnabled}"${kaspiEnabled ? '' : ' tabindex="-1"'} aria-label="Купить на Kaspi: ${escapeHtml(product.title)}"><span aria-hidden="true"></span>Kaspi</a>
         </div>
       </div>
     </article>`;
