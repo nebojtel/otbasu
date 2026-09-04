@@ -949,6 +949,7 @@ loadState();
     let lastTapAt = 0;
     let tapTimer = 0;
     let touchStartedOnImage = false;
+    let touchMoved = false;
 
     const minZoom = 1;
     const maxZoom = 3;
@@ -1106,7 +1107,7 @@ loadState();
       tapTimer = window.setTimeout(() => {
         tapTimer = 0;
         setZoom(2, true, focusPoint);
-      }, 260);
+      }, 300);
     };
 
     const updateBars = () => {
@@ -1196,6 +1197,7 @@ loadState();
       if (event.target.closest('button')) return;
 
       touchStartedOnImage = Boolean(getClosestImage(event.target));
+      touchMoved = false;
 
       if (event.touches?.length >= 2) {
         const center = getTouchCenter(event.touches);
@@ -1258,6 +1260,8 @@ loadState();
       const dy = lastY - startY;
       const ax = Math.abs(dx);
       const ay = Math.abs(dy);
+
+      if (ax >= 10 || ay >= 10) touchMoved = true;
 
       if (mode === 'pan') {
         if (event.cancelable) event.preventDefault();
@@ -1338,20 +1342,20 @@ loadState();
       const ax = Math.abs(dx);
       const ay = Math.abs(dy);
       const time = Date.now() - startTime;
-      const isTap = !mode && touchStartedOnImage && ax < 10 && ay < 10 && time < 280;
+      const isTap = (!mode || mode === 'pan') && !touchMoved && touchStartedOnImage && ax < 10 && ay < 10 && time < 280;
 
       touching = false;
       touchStartedOnImage = false;
 
-      if (mode === 'pan') {
-        ignoreClickUntil = Date.now() + 220;
-        applyZoom(true);
-        return;
-      }
-
       if (isTap) {
         ignoreClickUntil = Date.now() + 520;
         handleTapZoom({ clientX: lastX, clientY: lastY });
+        return;
+      }
+
+      if (mode === 'pan') {
+        ignoreClickUntil = Date.now() + 220;
+        applyZoom(true);
         return;
       }
 
