@@ -2881,3 +2881,184 @@ body.gallery-open {
     transition: none;
   }
 }
+
+/* Readable type on mobile and desktop without external font downloads. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  letter-spacing: 0;
+}
+
+.eyebrow {
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+h1 {
+  font-size: 24px;
+  line-height: 1.22;
+  font-weight: 700;
+  white-space: normal;
+  text-wrap: balance;
+}
+
+.hero-button {
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.kaspi-store-link strong {
+  font-size: 15px;
+  line-height: 1.3;
+  font-weight: 800;
+}
+
+.kaspi-store-link small {
+  font-size: 12.5px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.catalog-header h2 {
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 800;
+  text-wrap: balance;
+}
+
+.catalog-header span {
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 750;
+}
+
+.search-bar input {
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 650;
+}
+
+.filter-select {
+  font-size: 14.5px;
+  line-height: 1.3;
+  font-weight: 750;
+}
+
+.products-list .product {
+  height: 195px !important;
+  min-height: 195px !important;
+}
+
+.product .product-media,
+.product .content {
+  min-height: 190px !important;
+}
+
+.product .content {
+  gap: 10px;
+}
+
+.product-meta {
+  min-height: 26px;
+}
+
+.product-meta .category-name {
+  font-size: 12.5px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.product-meta .product-badge {
+  font-size: 12.5px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.product .content h2 {
+  font-size: 16px;
+  line-height: 1.35;
+  font-weight: 800;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+}
+
+.product-highlight {
+  font-size: 13.5px;
+  line-height: 1.5;
+  font-weight: 550;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+}
+
+.actions,
+.actions a {
+  height: 36px !important;
+  min-height: 36px !important;
+}
+
+.actions a {
+  font-size: 12.5px !important;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.bottom-nav .nav-label {
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 750;
+}
+
+@media (max-width: 360px) {
+  .product .content {
+    padding: 12px 8px 12px 9px;
+  }
+
+  .product-highlight {
+    font-size: 13px;
+  }
+
+  .actions a {
+    gap: 5px !important;
+    padding: 0 4px !important;
+    font-size: 12px !important;
+  }
+}
+
+@media (min-width: 900px) {
+  .products-list .product {
+    height: auto !important;
+  }
+
+  .products-list .product,
+  .product .product-media,
+  .product .content {
+    min-height: 208px !important;
+  }
+
+  .product .content h2 {
+    font-size: 16.5px;
+  }
+
+  .product-highlight {
+    font-size: 14px;
+  }
+}
