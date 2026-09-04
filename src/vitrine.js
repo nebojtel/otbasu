@@ -226,8 +226,8 @@ function renderProducts() {
 }
 
 function renderProductCard(product) {
-  const badgeText = tagLabels[product.tag] || '';
   const badgeClass = badgeClasses[product.tag] || '';
+  const badgeText = badgeClass ? tagLabels[product.tag] || '' : '';
   const highlight = getProductHighlight(product);
   const image = product.imageUrl || product.images?.[0] || fallbackImage();
   const safeKaspi = safeHref(product.kaspiUrl);

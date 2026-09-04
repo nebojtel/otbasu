@@ -2746,7 +2746,7 @@ body.gallery-open {
   align-items: center;
   flex-wrap: wrap;
   gap: 6px 8px;
-  min-height: 22px;
+  min-height: 24px;
   margin-bottom: 4px;
 }
 
