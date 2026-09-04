@@ -2975,6 +2975,12 @@ h1 {
   gap: 10px;
 }
 
+@media (max-width: 899px) {
+  .product .content {
+    justify-content: center;
+  }
+}
+
 .product-meta {
   min-height: 26px;
 }
