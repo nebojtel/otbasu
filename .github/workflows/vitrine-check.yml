@@ -26,10 +26,18 @@ jobs:
           package-manager-cache: false
 
       - name: Install dependencies
-        run: npm install --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Security audit
-        run: npm run audit:security
+        run: |
+          for attempt in 1 2 3; do
+            npm audit --audit-level=high --fetch-timeout=30000 --fetch-retries=0 && exit 0
+            if [ "$attempt" -lt 3 ]; then
+              echo "npm audit failed, retrying after a short delay..."
+              sleep $((attempt * 10))
+            fi
+          done
+          exit 1
 
       - name: Syntax check
         run: npm run check

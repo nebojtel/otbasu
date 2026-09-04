@@ -1,4 +1,5 @@
 import { supabase, isConfigured } from './supabaseClient.js';
+import { getProductHighlight } from './product-highlights.js';
 import { badgeClasses, escapeHtml, fallbackImage, normalizeExternalUrl, normalizeStatus, normalizeTag, productWord, safeHref, tagLabels } from './shared.js';
 
 const tabTitles = {
@@ -227,18 +228,24 @@ function renderProducts() {
 function renderProductCard(product) {
   const badgeText = tagLabels[product.tag] || '';
   const badgeClass = badgeClasses[product.tag] || '';
+  const highlight = getProductHighlight(product);
   const image = product.imageUrl || product.images?.[0] || fallbackImage();
   const safeKaspi = safeHref(product.kaspiUrl);
   const safeVideo = safeHref(product.videoUrl);
   return `
     <article class="product" data-product-id="${escapeHtml(product.id)}">
       <div class="product-media" data-gallery-open="${escapeHtml(product.id)}" role="button" tabindex="0" aria-label="Открыть фото товара ${escapeHtml(product.title)}">
-        <img class="photo" src="${escapeHtml(image)}" alt="${escapeHtml(product.title)}" loading="lazy">
-        ${badgeText ? `<span class="product-badge ${badgeClass}">${escapeHtml(badgeText)}</span>` : ''}
+        <img class="photo" src="${escapeHtml(image)}" alt="${escapeHtml(product.title)}" loading="lazy" decoding="async">
       </div>
       <div class="content">
-        <p class="category-name">${escapeHtml(product.category)}</p>
-        <h2>${escapeHtml(product.title)}</h2>
+        <div class="product-details">
+          <div class="product-meta">
+            <p class="category-name">${escapeHtml(product.category)}</p>
+            ${badgeText ? `<span class="product-badge ${badgeClass}">${escapeHtml(badgeText)}</span>` : ''}
+          </div>
+          <h2>${escapeHtml(product.title)}</h2>
+          ${highlight ? `<p class="product-highlight">${escapeHtml(highlight)}</p>` : ''}
+        </div>
         <div class="actions">
           <a class="video" href="${escapeHtml(safeVideo)}" target="_blank" rel="noopener noreferrer" data-action="video" data-enabled="${safeVideo !== '#'}"><span></span>Видео</a>
           <a class="kaspi" href="${escapeHtml(safeKaspi)}" target="_blank" rel="noopener noreferrer" data-action="kaspi" data-enabled="${safeKaspi !== '#'}"><span></span>Kaspi</a>
@@ -381,6 +388,17 @@ function toggleSort() {
 }
 
 function bindEvents() {
+  const screen = document.querySelector('.screen');
+  const hero = document.querySelector('.hero');
+  const storeHeader = document.querySelector('.kaspi-sticky');
+  if (screen && hero && storeHeader && 'IntersectionObserver' in window) {
+    const headerObserver = new IntersectionObserver(([entry]) => {
+      const pastHero = !entry.isIntersecting && entry.boundingClientRect.bottom <= (entry.rootBounds?.top ?? 0);
+      storeHeader.classList.toggle('is-compact', pastHero);
+    }, { root: screen, threshold: 0 });
+    headerObserver.observe(hero);
+  }
+
   els.search?.addEventListener('input', renderProducts);
   els.categoryFilter?.addEventListener('click', cycleCategory);
   els.sortToggle?.addEventListener('click', toggleSort);
@@ -388,7 +406,11 @@ function bindEvents() {
     link.addEventListener('click', (event) => {
       event.preventDefault();
       currentTab = link.dataset.vitrineFilter || 'all';
-      els.navLinks.forEach((item) => item.classList.toggle('active', item === link));
+      els.navLinks.forEach((item) => {
+        item.classList.toggle('active', item === link);
+        if (item === link) item.setAttribute('aria-current', 'page');
+        else item.removeAttribute('aria-current');
+      });
       renderProducts();
       document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       trackEvent('tab_click', { tab: currentTab });
