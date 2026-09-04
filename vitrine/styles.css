@@ -3062,3 +3062,35 @@ h1 {
     font-size: 14px;
   }
 }
+
+/* Let the mobile navigation follow the phone width and safe areas. */
+@media (max-width: 520px) {
+  .bottom-nav {
+    left: max(6px, env(safe-area-inset-left));
+    right: max(6px, env(safe-area-inset-right));
+    bottom: max(7px, env(safe-area-inset-bottom));
+    width: auto;
+    max-width: none;
+    transform: none;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    padding: 6px;
+  }
+
+  .bottom-nav a {
+    width: 100%;
+    min-width: 0;
+    padding-right: 2px;
+    padding-left: 2px;
+  }
+}
+
+@media (max-width: 360px) {
+  .bottom-nav {
+    left: max(4px, env(safe-area-inset-left));
+    right: max(4px, env(safe-area-inset-right));
+    gap: 2px;
+    padding-right: 5px;
+    padding-left: 5px;
+  }
+}
