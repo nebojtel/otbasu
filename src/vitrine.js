@@ -612,6 +612,12 @@ loadState();
         will-change: transform, opacity;
       }
 
+      .otbasu-photo-viewer.is-zoomed .otbasu-photo-track {
+        overflow: hidden;
+        scroll-snap-type: none;
+        touch-action: none;
+      }
+
       .otbasu-photo-viewer.is-open .otbasu-photo-track {
         transform: translate3d(0, 0, 0) scale(1);
         opacity: 1;
@@ -635,6 +641,7 @@ loadState();
         place-items: center;
         scroll-snap-align: center;
         scroll-snap-stop: always;
+        overflow: hidden;
         user-select: none;
         -webkit-user-select: none;
       }
@@ -656,6 +663,19 @@ loadState();
         -webkit-user-select: none;
         -webkit-user-drag: none;
         touch-action: pan-x;
+        cursor: zoom-in;
+        transition: transform 180ms ease;
+        transform-origin: center center;
+        will-change: transform;
+      }
+
+      .otbasu-photo-viewer.is-zoomed .otbasu-photo-slide.is-active img {
+        cursor: grab;
+        touch-action: none;
+      }
+
+      .otbasu-photo-viewer.is-zoomed .otbasu-photo-slide.is-active img:active {
+        cursor: grabbing;
       }
 
       .otbasu-photo-close {
@@ -693,6 +713,48 @@ loadState();
 
       .otbasu-photo-close::after {
         transform: translate(-50%, -50%) rotate(-45deg);
+      }
+
+      .otbasu-photo-zoom {
+        position: fixed;
+        left: 14px;
+        top: max(14px, env(safe-area-inset-top));
+        z-index: 6;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px;
+        border-radius: 999px;
+        background: rgba(255, 250, 244, .12);
+        box-shadow: 0 14px 40px rgba(12, 2, 9, .22);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+
+      .otbasu-photo-zoom button {
+        min-width: 38px;
+        height: 38px;
+        border: 0;
+        border-radius: 999px;
+        color: #79124f;
+        background: rgba(255, 250, 244, .92);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .62);
+        font-size: 19px;
+        font-weight: 950;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .otbasu-photo-zoom button:disabled {
+        opacity: .42;
+        cursor: default;
+      }
+
+      .otbasu-photo-zoom-value {
+        min-width: 58px !important;
+        color: #fff7e8 !important;
+        background: rgba(66, 12, 46, .74) !important;
+        font-size: 12px !important;
       }
 
       .otbasu-photo-bars {
@@ -737,7 +799,7 @@ loadState();
       .otbasu-photo-hint {
         position: fixed;
         left: 50%;
-        top: max(18px, env(safe-area-inset-top));
+        top: max(66px, calc(env(safe-area-inset-top) + 58px));
         z-index: 5;
         transform: translateX(-50%);
         padding: 8px 12px;
@@ -756,6 +818,16 @@ loadState();
 
       .otbasu-photo-viewer.is-used .otbasu-photo-hint {
         opacity: 0;
+      }
+
+      @media (max-width: 760px), (pointer: coarse) {
+        .otbasu-photo-zoom {
+          display: none;
+        }
+
+        .otbasu-photo-hint {
+          top: max(18px, env(safe-area-inset-top));
+        }
       }
 
       body.otbasu-photo-open {
@@ -818,6 +890,11 @@ loadState();
     viewer.innerHTML = `
       <div class="otbasu-photo-backdrop" data-otbasu-photo-close></div>
       <button class="otbasu-photo-close" type="button" data-otbasu-photo-close aria-label="Закрыть просмотр фото"></button>
+      <div class="otbasu-photo-zoom" aria-label="Масштаб фото">
+        <button type="button" data-otbasu-zoom="out" aria-label="Уменьшить фото">−</button>
+        <button class="otbasu-photo-zoom-value" type="button" data-otbasu-zoom="reset" aria-label="Вернуть обычный масштаб">100%</button>
+        <button type="button" data-otbasu-zoom="in" aria-label="Увеличить фото">+</button>
+      </div>
       <div class="otbasu-photo-hint">Листай влево/вправо · вверх/вниз закрыть</div>
 
       <div class="otbasu-photo-track" data-otbasu-photo-track>
@@ -845,21 +922,205 @@ loadState();
 
     const track = viewer.querySelector('[data-otbasu-photo-track]');
     const bars = Array.from(viewer.querySelectorAll('[data-otbasu-photo-dot]'));
+    const zoomOut = viewer.querySelector('[data-otbasu-zoom="out"]');
+    const zoomReset = viewer.querySelector('[data-otbasu-zoom="reset"]');
+    const zoomIn = viewer.querySelector('[data-otbasu-zoom="in"]');
 
     let activeIndex = 0;
+    let zoomScale = 1;
+    let panX = 0;
+    let panY = 0;
     let startX = 0;
     let startY = 0;
     let lastX = 0;
     let lastY = 0;
+    let startPanX = 0;
+    let startPanY = 0;
+    let pinchStartDistance = 0;
+    let pinchStartScale = 1;
+    let pinchStartCenterX = 0;
+    let pinchStartCenterY = 0;
     let startTime = 0;
     let mode = null;
     let touching = false;
+    let pointerDragging = false;
     let raf = 0;
     let ignoreClickUntil = 0;
+    let lastTapAt = 0;
+    let tapTimer = 0;
+    let touchStartedOnImage = false;
+
+    const minZoom = 1;
+    const maxZoom = 3;
+    const zoomStep = .5;
+
+    const getSlides = () => Array.from(track.querySelectorAll('.otbasu-photo-slide'));
+    const getActiveSlide = () => getSlides()[activeIndex] || null;
+    const getActiveImage = () => getActiveSlide()?.querySelector('img') || null;
+    const getClosestImage = (target) => target?.closest?.('img') || null;
+    const isTouchLike = () => (navigator.maxTouchPoints || 0) > 0 || Boolean(window.matchMedia?.('(pointer: coarse)')?.matches);
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+    const getTouchDistance = (touches) => {
+      if (!touches || touches.length < 2) return 0;
+
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+
+      return Math.hypot(dx, dy);
+    };
+
+    const getTouchCenter = (touches) => {
+      if (!touches?.length) return null;
+
+      if (touches.length === 1) {
+        return {
+          clientX: touches[0].clientX,
+          clientY: touches[0].clientY,
+        };
+      }
+
+      return {
+        clientX: (touches[0].clientX + touches[1].clientX) / 2,
+        clientY: (touches[0].clientY + touches[1].clientY) / 2,
+      };
+    };
+
+    const clampPan = () => {
+      const slide = getActiveSlide();
+
+      if (!slide || zoomScale <= minZoom) {
+        panX = 0;
+        panY = 0;
+        return;
+      }
+
+      const maxX = Math.max(0, (slide.clientWidth * (zoomScale - 1)) / 2);
+      const maxY = Math.max(0, (slide.clientHeight * (zoomScale - 1)) / 2);
+
+      panX = clamp(panX, -maxX, maxX);
+      panY = clamp(panY, -maxY, maxY);
+    };
+
+    const applyZoom = (withTransition = true) => {
+      const image = getActiveImage();
+      const isZoomed = zoomScale > minZoom + .01;
+
+      clampPan();
+      viewer.classList.toggle('is-zoomed', isZoomed);
+
+      getSlides().forEach((slide, index) => {
+        const slideImage = slide.querySelector('img');
+
+        slide.classList.toggle('is-active', index === activeIndex);
+
+        if (!slideImage) return;
+
+        if (index !== activeIndex) {
+          slideImage.style.transform = '';
+          slideImage.style.transition = '';
+        }
+      });
+
+      if (image) {
+        image.style.transition = withTransition ? 'transform 180ms ease' : 'none';
+        image.style.transform = isZoomed
+          ? `translate3d(${panX}px, ${panY}px, 0) scale(${zoomScale})`
+          : '';
+      }
+
+      if (zoomOut) zoomOut.disabled = zoomScale <= minZoom + .01;
+      if (zoomIn) zoomIn.disabled = zoomScale >= maxZoom - .01;
+      if (zoomReset) zoomReset.textContent = `${Math.round(zoomScale * 100)}%`;
+    };
+
+    const setZoom = (value, withTransition = true, focusPoint = null) => {
+      const previousScale = zoomScale;
+      const nextScale = clamp(value, minZoom, maxZoom);
+
+      if (focusPoint && nextScale > minZoom + .01) {
+        const slide = getActiveSlide();
+
+        if (slide) {
+          const rect = slide.getBoundingClientRect();
+          const ratio = nextScale / Math.max(previousScale, minZoom);
+          const offsetX = focusPoint.clientX - rect.left - rect.width / 2;
+          const offsetY = focusPoint.clientY - rect.top - rect.height / 2;
+
+          panX = panX * ratio - offsetX * (ratio - 1);
+          panY = panY * ratio - offsetY * (ratio - 1);
+        }
+      }
+
+      zoomScale = nextScale;
+
+      if (zoomScale <= minZoom + .01) {
+        zoomScale = minZoom;
+        panX = 0;
+        panY = 0;
+      }
+
+      viewer.classList.add('is-used');
+      applyZoom(withTransition);
+    };
+
+    const resetZoom = (withTransition = true) => {
+      if (tapTimer) {
+        window.clearTimeout(tapTimer);
+        tapTimer = 0;
+      }
+
+      zoomScale = minZoom;
+      panX = 0;
+      panY = 0;
+      applyZoom(withTransition);
+    };
+
+    const zoomBy = (delta, focusPoint = null) => {
+      setZoom(zoomScale + delta, true, focusPoint);
+    };
+
+    const toggleZoom = (focusPoint = null) => {
+      setZoom(zoomScale > minZoom + .01 ? minZoom : 2, true, focusPoint);
+    };
+
+    const handleTapZoom = (focusPoint) => {
+      const now = Date.now();
+      const isDoubleTap = now - lastTapAt < 300;
+
+      if (tapTimer) {
+        window.clearTimeout(tapTimer);
+        tapTimer = 0;
+      }
+
+      if (isDoubleTap) {
+        toggleZoom(focusPoint);
+        lastTapAt = 0;
+        return;
+      }
+
+      lastTapAt = now;
+
+      if (zoomScale > minZoom + .01) return;
+
+      tapTimer = window.setTimeout(() => {
+        tapTimer = 0;
+        setZoom(2, true, focusPoint);
+      }, 260);
+    };
 
     const updateBars = () => {
       const nextIndex = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
-      activeIndex = Math.max(0, Math.min(safeImages.length - 1, nextIndex));
+      const clampedIndex = Math.max(0, Math.min(safeImages.length - 1, nextIndex));
+      const changed = clampedIndex !== activeIndex;
+
+      activeIndex = clampedIndex;
+
+      if (changed) {
+        resetZoom(false);
+      } else {
+        applyZoom(false);
+      }
 
       bars.forEach((bar, index) => {
         bar.classList.toggle('is-active', index === activeIndex);
@@ -875,12 +1136,18 @@ loadState();
     const scrollToIndex = (index, behavior = 'smooth') => {
       const next = Math.max(0, Math.min(safeImages.length - 1, index));
       viewer.classList.add('is-used');
+      resetZoom(false);
       track.scrollTo({ left: next * track.clientWidth, behavior });
       window.setTimeout(updateBars, behavior === 'smooth' ? 220 : 0);
     };
 
     const closeViewer = (directionY = 1) => {
       if (!viewer.isConnected) return;
+
+      if (tapTimer) {
+        window.clearTimeout(tapTimer);
+        tapTimer = 0;
+      }
 
       viewer.classList.add('is-used');
       viewer.style.transition = 'opacity 190ms ease, background 190ms ease';
@@ -928,14 +1195,35 @@ loadState();
     const startTouch = (event) => {
       if (event.target.closest('button')) return;
 
+      touchStartedOnImage = Boolean(getClosestImage(event.target));
+
+      if (event.touches?.length >= 2) {
+        const center = getTouchCenter(event.touches);
+
+        touching = true;
+        mode = 'pinch';
+        pinchStartDistance = getTouchDistance(event.touches);
+        pinchStartScale = zoomScale;
+        pinchStartCenterX = center?.clientX || 0;
+        pinchStartCenterY = center?.clientY || 0;
+        startPanX = panX;
+        startPanY = panY;
+        touchStartedOnImage = false;
+        viewer.classList.add('is-used');
+        if (event.cancelable) event.preventDefault();
+        return;
+      }
+
       const point = getTouch(event);
 
       touching = true;
-      mode = null;
+      mode = zoomScale > minZoom + .01 ? 'pan' : null;
       startX = point.clientX;
       startY = point.clientY;
       lastX = point.clientX;
       lastY = point.clientY;
+      startPanX = panX;
+      startPanY = panY;
       startTime = Date.now();
 
       track.style.transition = 'none';
@@ -943,6 +1231,23 @@ loadState();
 
     const moveTouch = (event) => {
       if (!touching) return;
+
+      if (mode === 'pinch') {
+        if (!event.touches || event.touches.length < 2 || !pinchStartDistance) return;
+        if (event.cancelable) event.preventDefault();
+
+        const distance = getTouchDistance(event.touches);
+        const center = getTouchCenter(event.touches);
+        const nextScale = pinchStartScale * (distance / pinchStartDistance);
+
+        if (center) {
+          panX = startPanX + (center.clientX - pinchStartCenterX);
+          panY = startPanY + (center.clientY - pinchStartCenterY);
+        }
+
+        setZoom(nextScale, false);
+        return;
+      }
 
       const point = getTouch(event);
 
@@ -953,6 +1258,15 @@ loadState();
       const dy = lastY - startY;
       const ax = Math.abs(dx);
       const ay = Math.abs(dy);
+
+      if (mode === 'pan') {
+        if (event.cancelable) event.preventDefault();
+
+        panX = startPanX + dx;
+        panY = startPanY + dy;
+        applyZoom(false);
+        return;
+      }
 
       const pullingRightFromFirst = dx > 0 && isAtFirstPhoto();
       const pullingLeftFromLast = dx < 0 && isAtLastPhoto();
@@ -1004,6 +1318,14 @@ loadState();
     const endTouch = (event) => {
       if (!touching) return;
 
+      if (mode === 'pinch') {
+        touching = false;
+        mode = null;
+        touchStartedOnImage = false;
+        applyZoom(true);
+        return;
+      }
+
       const point = getTouch(event);
 
       if (point) {
@@ -1016,8 +1338,22 @@ loadState();
       const ax = Math.abs(dx);
       const ay = Math.abs(dy);
       const time = Date.now() - startTime;
+      const isTap = !mode && touchStartedOnImage && ax < 10 && ay < 10 && time < 280;
 
       touching = false;
+      touchStartedOnImage = false;
+
+      if (mode === 'pan') {
+        ignoreClickUntil = Date.now() + 220;
+        applyZoom(true);
+        return;
+      }
+
+      if (isTap) {
+        ignoreClickUntil = Date.now() + 520;
+        handleTapZoom({ clientX: lastX, clientY: lastY });
+        return;
+      }
 
       if (mode === 'edge-horizontal') {
         ignoreClickUntil = Date.now() + 260;
@@ -1063,11 +1399,80 @@ loadState();
       });
     });
 
+    zoomOut?.addEventListener('click', () => zoomBy(-zoomStep));
+    zoomReset?.addEventListener('click', () => resetZoom());
+    zoomIn?.addEventListener('click', () => zoomBy(zoomStep));
+
+    track.addEventListener('click', (event) => {
+      if (!getClosestImage(event.target)) return;
+      if (Date.now() < ignoreClickUntil) return;
+
+      const focusPoint = { clientX: event.clientX, clientY: event.clientY };
+
+      if (event.detail === 2) {
+        event.preventDefault();
+        toggleZoom(focusPoint);
+        lastTapAt = 0;
+        return;
+      }
+
+      if (isTouchLike()) {
+        event.preventDefault();
+        handleTapZoom(focusPoint);
+      }
+    });
+
+    track.addEventListener('wheel', (event) => {
+      if (!getClosestImage(event.target)) return;
+
+      event.preventDefault();
+      zoomBy(event.deltaY < 0 ? .25 : -.25, { clientX: event.clientX, clientY: event.clientY });
+    }, { passive: false });
+
+    track.addEventListener('pointerdown', (event) => {
+      if (event.pointerType !== 'mouse' || event.button !== 0 || zoomScale <= minZoom + .01) return;
+      if (!getClosestImage(event.target)) return;
+
+      pointerDragging = true;
+      startX = event.clientX;
+      startY = event.clientY;
+      startPanX = panX;
+      startPanY = panY;
+      track.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+    });
+
+    track.addEventListener('pointermove', (event) => {
+      if (!pointerDragging) return;
+
+      panX = startPanX + (event.clientX - startX);
+      panY = startPanY + (event.clientY - startY);
+      applyZoom(false);
+      event.preventDefault();
+    });
+
+    const stopPointerPan = (event) => {
+      if (!pointerDragging) return;
+
+      pointerDragging = false;
+      ignoreClickUntil = Date.now() + 220;
+      track.releasePointerCapture?.(event.pointerId);
+      applyZoom(true);
+    };
+
+    track.addEventListener('pointerup', stopPointerPan);
+    track.addEventListener('pointercancel', stopPointerPan);
     track.addEventListener('scroll', requestUpdateBars, { passive: true });
-    track.addEventListener('touchstart', startTouch, { passive: true });
+    track.addEventListener('touchstart', startTouch, { passive: false });
     track.addEventListener('touchmove', moveTouch, { passive: false });
     track.addEventListener('touchend', endTouch, { passive: true });
-    track.addEventListener('touchcancel', resetTrack, { passive: true });
+    track.addEventListener('touchcancel', () => {
+      touching = false;
+      mode = null;
+      touchStartedOnImage = false;
+      resetTrack();
+      applyZoom(true);
+    }, { passive: true });
 
     const keyHandler = (event) => {
       if (!viewer.isConnected) {
@@ -1078,6 +1483,9 @@ loadState();
       if (event.key === 'Escape') closeViewer(1);
       if (event.key === 'ArrowLeft') scrollToIndex(activeIndex - 1);
       if (event.key === 'ArrowRight') scrollToIndex(activeIndex + 1);
+      if (event.key === '+' || event.key === '=') zoomBy(zoomStep);
+      if (event.key === '-' || event.key === '_') zoomBy(-zoomStep);
+      if (event.key === '0') resetZoom();
     };
 
     window.addEventListener('keydown', keyHandler);
