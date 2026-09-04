@@ -2778,13 +2778,23 @@ body.gallery-open {
 .product .product-media {
   display: grid;
   align-content: center;
-  padding-block: 0 28px;
+  padding: 0;
 }
 
 .product-media .photo {
   height: auto;
   aspect-ratio: 1;
   object-fit: contain;
+}
+
+.products-list .product {
+  min-height: 176px !important;
+  grid-template-columns: clamp(132px, 40vw, 156px) minmax(0, 1fr) !important;
+}
+
+.product .product-media,
+.product .content {
+  min-height: 176px !important;
 }
 
 .bottom-nav {
@@ -2846,8 +2856,14 @@ body.gallery-open {
   }
 
   .products-list .product {
-    grid-template-columns: 142px minmax(0, 1fr) !important;
+    min-height: 196px !important;
+    grid-template-columns: 190px minmax(0, 1fr) !important;
     margin-bottom: 0 !important;
+  }
+
+  .product .product-media,
+  .product .content {
+    min-height: 196px !important;
   }
 
   .product .content {
