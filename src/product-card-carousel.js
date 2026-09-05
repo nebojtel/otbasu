@@ -2,6 +2,7 @@ import { escapeHtml, fallbackImage } from './shared.js';
 
 const MAX_INLINE_ZOOM = 2.5;
 const CARD_IMAGE_PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+const carouselCleanups = new WeakMap();
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -49,10 +50,10 @@ export function renderProductCardMedia(product, cardIndex = 0) {
       data-card-inline-zoomed="false">
       <div class="shop-card__track" data-card-track aria-label="Фотографии товара ${escapeHtml(title)}">
         ${images.map((src, imageIndex) => {
-          const loadEagerly = imageIndex === 0 && cardIndex < 2;
-          const fetchPriority = imageIndex === 0 && cardIndex === 0 ? 'high' : 'low';
-          const initialSource = imageIndex === 0 ? src : CARD_IMAGE_PLACEHOLDER;
-          const deferredSource = imageIndex === 0 ? '' : `data-card-src="${escapeHtml(src)}"`;
+          const loadEagerly = imageIndex === 0 && cardIndex === 0;
+          const fetchPriority = loadEagerly ? 'high' : 'low';
+          const initialSource = loadEagerly ? src : CARD_IMAGE_PLACEHOLDER;
+          const deferredSource = loadEagerly ? '' : `data-card-src="${escapeHtml(src)}"`;
 
           return `
             <button
@@ -100,8 +101,10 @@ function setupCarousel(media) {
 
   media.dataset.cardCarouselReady = 'true';
 
-  let activeIndex = 0;
+  let activeIndex = -1;
   let scrollRaf = 0;
+  let navigationTimer = 0;
+  let isNearViewport = false;
   let scrollStartLeft = 0;
   let zoomScale = 1;
   let panX = 0;
@@ -131,7 +134,6 @@ function setupCarousel(media) {
   }
 
   function applyInlineZoom(withTransition = true) {
-    const activeImage = getActiveImage();
     const isZoomed = zoomScale > 1.01;
 
     clampPan();
@@ -175,9 +177,19 @@ function setupCarousel(media) {
     });
   }
 
+  function prefetchNextImage() {
+    const connection = navigator.connection;
+    if (!isNearViewport || connection?.saveData || /(^|-)2g$/.test(connection?.effectiveType || '')) return;
+    const activeImage = getActiveImage();
+    if (activeImage?.complete && activeImage.naturalWidth > 1 && !activeImage.dataset.cardSrc) {
+      hydrateImage(images[activeIndex + 1]);
+    }
+  }
+
   function setActiveIndex(index, hydrate = true) {
     const nextIndex = clamp(index, 0, slides.length - 1);
-    if (nextIndex !== activeIndex) resetInlineZoom(false);
+    if (nextIndex === activeIndex) return;
+    if (activeIndex >= 0) resetInlineZoom(false);
     activeIndex = nextIndex;
     media.dataset.cardActiveIndex = String(activeIndex);
 
@@ -217,8 +229,13 @@ function setupCarousel(media) {
     hydrateImage(images[nextIndex], 'high');
     suppressOpen();
     track.scrollTo({ left: nextIndex * track.clientWidth, behavior: 'smooth' });
-    window.setTimeout(() => setActiveIndex(nextIndex), 220);
+    window.clearTimeout(navigationTimer);
+    navigationTimer = window.setTimeout(() => setActiveIndex(nextIndex), 220);
   }
+
+  track.addEventListener('load', (event) => {
+    if (event.target === getActiveImage()) prefetchNextImage();
+  }, true);
 
   track.addEventListener('scroll', () => {
     if (Math.abs(track.scrollLeft - scrollStartLeft) > 4) suppressOpen();
@@ -340,18 +357,40 @@ function setupCarousel(media) {
   });
   resizeObserver.observe(track);
 
-  if ('IntersectionObserver' in window && slides.length > 1) {
-    const nearbyObserver = new IntersectionObserver((entries) => {
-      if (!entries.some((entry) => entry.isIntersecting)) return;
-      hydrateNearbyImages();
-      nearbyObserver.disconnect();
+  let nearbyObserver;
+  if ('IntersectionObserver' in window) {
+    nearbyObserver = new IntersectionObserver(([entry]) => {
+      isNearViewport = entry.isIntersecting;
+      if (!isNearViewport) return;
+      hydrateImage(getActiveImage(), 'high');
+      prefetchNextImage();
     }, { rootMargin: '120px 0px' });
     nearbyObserver.observe(media);
+  } else {
+    images.forEach((image) => hydrateImage(image));
   }
 
   setActiveIndex(0, false);
+
+  return () => {
+    resizeObserver.disconnect();
+    nearbyObserver?.disconnect();
+    cancelAnimationFrame(scrollRaf);
+    window.clearTimeout(navigationTimer);
+  };
 }
 
 export function setupProductCardCarousels(root = document) {
-  root.querySelectorAll('[data-card-carousel]').forEach(setupCarousel);
+  const media = [...root.querySelectorAll('[data-card-carousel]')];
+  const previous = carouselCleanups.get(root) || new Map();
+  const current = new Map();
+
+  previous.forEach((dispose, element) => {
+    if (!media.includes(element)) dispose();
+  });
+  media.forEach((element) => {
+    const dispose = previous.get(element) || setupCarousel(element);
+    if (dispose) current.set(element, dispose);
+  });
+  carouselCleanups.set(root, current);
 }
