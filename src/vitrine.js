@@ -1,4 +1,4 @@
-import { supabase, isConfigured } from './supabaseClient.js';
+import { supabase, isConfigured } from './vitrineClient.js';
 import { getProductHighlight } from './product-highlights.js';
 import { renderProductCardMedia, setupProductCardCarousels } from './product-card-carousel.js';
 import { badgeClasses, escapeHtml, fallbackImage, normalizeExternalUrl, normalizeStatus, normalizeTag, productWord, safeHref, tagLabels } from './shared.js';
@@ -1730,6 +1730,7 @@ loadState();
         .filter((img) => !img.closest('.otbasu-photo-viewer'));
 
       images.forEach((img, imageIndex) => {
+        if (img.closest('[data-card-carousel]')) return;
         if (!img || img.dataset.otbasuProductOptimized === 'true') return;
 
         img.dataset.otbasuProductOptimized = 'true';
