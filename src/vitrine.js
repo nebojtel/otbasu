@@ -1,5 +1,6 @@
 import { supabase, isConfigured } from './supabaseClient.js';
 import { getProductHighlight } from './product-highlights.js';
+import { renderProductCardMedia, setupProductCardCarousels } from './product-card-carousel.js';
 import { badgeClasses, escapeHtml, fallbackImage, normalizeExternalUrl, normalizeStatus, normalizeTag, productWord, safeHref, tagLabels } from './shared.js';
 
 const tabTitles = {
@@ -222,23 +223,21 @@ function renderProducts() {
     : tabTitles[currentTab];
 
   attachCardHandlers();
+  setupProductCardCarousels(els.list);
   observeProductViews();
 }
 
-function renderProductCard(product) {
+function renderProductCard(product, cardIndex = 0) {
   const badgeClass = badgeClasses[product.tag] || '';
   const badgeText = badgeClass ? tagLabels[product.tag] || '' : '';
   const highlight = getProductHighlight(product);
-  const image = product.imageUrl || product.images?.[0] || fallbackImage();
   const safeKaspi = safeHref(product.kaspiUrl || state.settings?.kaspiStoreUrl);
   const safeVideo = safeHref(product.videoUrl);
   const videoEnabled = safeVideo !== '#';
   const kaspiEnabled = safeKaspi !== '#';
   return `
     <article class="product shop-card" data-product-id="${escapeHtml(product.id)}">
-      <div class="product-media shop-card__media" data-gallery-open="${escapeHtml(product.id)}" role="button" tabindex="0" aria-label="Открыть фото товара ${escapeHtml(product.title)}">
-        <img class="photo shop-card__image" src="${escapeHtml(image)}" alt="${escapeHtml(product.title)}" loading="lazy" decoding="async">
-      </div>
+      ${renderProductCardMedia(product, cardIndex)}
       <div class="content shop-card__body">
         <div class="product-details shop-card__details">
           <div class="product-meta shop-card__meta">
@@ -258,6 +257,8 @@ function renderProductCard(product) {
 
 function attachCardHandlers() {
   document.querySelectorAll('[data-gallery-open]').forEach((node) => {
+    if (node.matches('[data-card-carousel]')) return;
+
     node.addEventListener('click', () => openGalleryById(node.dataset.galleryOpen));
     node.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' || event.key === ' ') {
@@ -873,29 +874,16 @@ loadState();
     document.head.appendChild(style);
   }
 
-  function addPhotoBadges() {
-    document.querySelectorAll('.product').forEach((card) => {
-      const media = card.querySelector('.product-media, [data-gallery-open]');
-      if (!media || media.querySelector('.otbasu-photo-count-badge')) return;
-
-      const productId = media.dataset.galleryOpen || card.dataset.productId || '';
-      const product = getProductsSafely().find((item) => String(item.id) === String(productId));
-      const images = getImagesFromProduct(product || {}, media);
-
-      if (images.length < 2) return;
-
-      const badge = document.createElement('span');
-      badge.className = 'otbasu-photo-count-badge';
-      badge.textContent = `${images.length} фото`;
-      media.appendChild(badge);
-    });
-  }
-
   function openViewer(product, images, opener) {
     injectStyles();
 
     const safeImages = uniqImages(images);
     if (!safeImages.length) return;
+
+    const requestedIndex = Number(opener?.dataset?.cardActiveIndex || 0);
+    const initialIndex = Number.isFinite(requestedIndex)
+      ? Math.max(0, Math.min(safeImages.length - 1, requestedIndex))
+      : 0;
 
     document.getElementById(VIEWER_ID)?.remove();
 
@@ -932,7 +920,7 @@ loadState();
       <div class="otbasu-photo-bars" aria-label="Фотографии товара">
         ${safeImages.map((_, index) => `
           <button
-            class="otbasu-photo-bar${index === 0 ? ' is-active' : ''}"
+            class="otbasu-photo-bar${index === initialIndex ? ' is-active' : ''}"
             type="button"
             data-otbasu-photo-dot="${index}"
             aria-label="Фото ${index + 1} из ${safeImages.length}">
@@ -950,7 +938,7 @@ loadState();
     const zoomReset = viewer.querySelector('[data-otbasu-zoom="reset"]');
     const zoomIn = viewer.querySelector('[data-otbasu-zoom="in"]');
 
-    let activeIndex = 0;
+    let activeIndex = initialIndex;
     let zoomScale = 1;
     let panX = 0;
     let panY = 0;
@@ -1520,9 +1508,9 @@ loadState();
 
     requestAnimationFrame(() => {
       viewer.classList.add('is-open');
-      scrollToIndex(0, 'auto');
+      scrollToIndex(initialIndex, 'auto');
 
-      const firstImage = track.querySelector('img');
+      const firstImage = getActiveImage();
 
       if (firstImage) {
         firstImage.animate(
@@ -1546,6 +1534,7 @@ loadState();
 
       if (!target || !target.closest) return;
       if (target.closest('.actions, a[href], [data-action], .otbasu-photo-viewer')) return;
+      if (target.closest('[data-card-carousel-control]')) return;
 
       const opener =
         target.closest('[data-gallery-open]') ||
@@ -1553,6 +1542,15 @@ loadState();
         target.closest('.product img');
 
       if (!opener) return;
+
+      const cardCarousel = opener.matches?.('[data-card-carousel]')
+        ? opener
+        : opener.closest?.('[data-card-carousel]');
+
+      if (cardCarousel) {
+        const suppressUntil = Number(cardCarousel.dataset.cardSuppressOpenUntil || 0);
+        if (Date.now() < suppressUntil || cardCarousel.dataset.cardInlineZoomed === 'true') return;
+      }
 
       const product = getProductFromClick(opener);
       const images = getImagesFromProduct(product, opener);
@@ -1576,12 +1574,9 @@ loadState();
 
   document.addEventListener('DOMContentLoaded', () => {
     injectStyles();
-    window.setTimeout(addPhotoBadges, 500);
-    window.setTimeout(addPhotoBadges, 1500);
   });
 
   injectStyles();
-  window.setTimeout(addPhotoBadges, 700);
 })();
 /* OTBASU VITRINE SMART IMAGE OPTIMIZATION — SAFE
    Умная загрузка фото:
@@ -1615,6 +1610,7 @@ loadState();
     try {
       const url = new URL(src, window.location.href);
 
+      if (url.protocol === 'data:' || url.protocol === 'blob:' || url.origin === 'null') return;
       if (url.origin === window.location.origin) return;
       if (preconnectedOrigins.has(url.origin)) return;
 
@@ -1727,28 +1723,25 @@ loadState();
   }
 
   function optimizeProductCardImages() {
-    const images = Array.from(
-      document.querySelectorAll('.product img, .product-media img, [data-gallery-open] img')
-    ).filter((img) => !img.closest('.otbasu-photo-viewer'));
+    const cards = Array.from(document.querySelectorAll('.product'));
 
-    if (!images.length) return;
+    cards.forEach((card, cardIndex) => {
+      const images = Array.from(card.querySelectorAll('img'))
+        .filter((img) => !img.closest('.otbasu-photo-viewer'));
 
-    images.forEach((img, index) => {
-      if (!img || img.dataset.otbasuProductOptimized === 'true') return;
+      images.forEach((img, imageIndex) => {
+        if (!img || img.dataset.otbasuProductOptimized === 'true') return;
 
-      img.dataset.otbasuProductOptimized = 'true';
+        img.dataset.otbasuProductOptimized = 'true';
 
-      const src = img.getAttribute('src') || img.currentSrc || '';
+        const src = img.getAttribute('src') || img.currentSrc || '';
 
-      if (src) {
-        preconnectFromSrc(src);
-      }
+        if (src) {
+          preconnectFromSrc(src);
+        }
 
-      if (index <= 1) {
-        setImagePriority(img, 'high');
-      } else {
-        setImagePriority(img, 'low');
-      }
+        setImagePriority(img, imageIndex === 0 && cardIndex <= 1 ? 'high' : 'low');
+      });
     });
   }
 
