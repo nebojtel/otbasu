@@ -75,6 +75,10 @@ export function renderProductCardMedia(product, cardIndex = 0) {
             </button>`;
         }).join('')}
       </div>
+      <button class="shop-card__share" type="button" data-share-product data-action="share" aria-label="Поделиться: ${escapeHtml(title)}">
+        <span class="shop-card__share-icon" aria-hidden="true"></span>
+        <span class="shop-card__share-tooltip" aria-hidden="true">Поделиться</span>
+      </button>
       ${hasMultipleImages ? `
         <button class="shop-card__arrow shop-card__arrow--prev" type="button" data-card-carousel-control="prev" aria-label="Предыдущее фото">‹</button>
         <button class="shop-card__arrow shop-card__arrow--next" type="button" data-card-carousel-control="next" aria-label="Следующее фото">›</button>

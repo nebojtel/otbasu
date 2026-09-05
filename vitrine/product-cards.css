@@ -45,6 +45,112 @@
   display: none !important;
 }
 
+.product.shop-card .shop-card__share {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid rgba(63, 34, 50, .15);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .95);
+  color: #432332;
+  cursor: pointer;
+}
+
+.shop-card__share-icon {
+  width: 19px;
+  height: 19px;
+  background: currentColor;
+  mask: url('/assets/icon-share.svg') center / contain no-repeat;
+  -webkit-mask: url('/assets/icon-share.svg') center / contain no-repeat;
+}
+
+.shop-card__share-tooltip {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  visibility: hidden;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: #432332;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.shop-card__share:focus-visible .shop-card__share-tooltip {
+  visibility: visible;
+}
+
+@media (hover: hover) {
+  .shop-card__share:hover .shop-card__share-tooltip {
+    visibility: visible;
+  }
+}
+
+.product.shop-card .shop-card__share:focus-visible,
+.product.shop-card:focus-visible {
+  outline: 3px solid #6d2751;
+  outline-offset: -3px;
+}
+
+.share-link-dialog {
+  width: min(420px, calc(100% - 32px));
+  padding: 20px;
+  border: 1px solid #ded7da;
+  border-radius: 8px;
+  color: #25141e;
+  background: #fff;
+}
+
+.share-link-dialog::backdrop {
+  background: rgba(25, 12, 20, .55);
+}
+
+.share-link-dialog form {
+  display: grid;
+  gap: 14px;
+}
+
+.share-link-dialog input,
+.share-link-dialog button {
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid #786b72;
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #25141e;
+  background: #fff;
+  font-size: 16px;
+}
+
+.vitrine-feedback {
+  position: fixed;
+  bottom: calc(86px + env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 1000;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  transform: translateX(-50%);
+  border-radius: 6px;
+  background: #432332;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.vitrine-feedback:not(:empty) {
+  padding: 10px 14px;
+}
+
 .product.shop-card .shop-card__track {
   position: relative;
   display: flex;
@@ -279,7 +385,7 @@
 }
 
 .product.shop-card .badge-hit {
-  background: #e72f5d;
+  background: #d92555;
 }
 
 .product.shop-card .badge-new {
@@ -307,7 +413,7 @@
 .product.shop-card .product-highlight {
   margin: 0;
   color: #665a61;
-  font-size: 14.5px;
+  font-size: 15.5px;
   font-weight: 500;
   line-height: 1.45;
   overflow-wrap: break-word;
@@ -338,7 +444,7 @@
   min-height: 46px !important;
   padding: 0 12px !important;
   border-radius: 8px;
-  font-size: 14px !important;
+  font-size: 15px !important;
   font-weight: 800;
   line-height: 1;
   text-decoration: none;
@@ -358,8 +464,8 @@
 }
 
 .product.shop-card .shop-card__actions .kaspi {
-  border: 1px solid #df2933 !important;
-  background: #ec343d !important;
+  border: 1px solid #c8212d !important;
+  background: #d92533 !important;
   color: #fff;
 }
 
@@ -406,8 +512,8 @@
 }
 
 .product.shop-card .shop-card__actions .kaspi:hover {
-  border-color: #c91f29 !important;
-  background: #dc2933 !important;
+  border-color: #b41d28 !important;
+  background: #c8212d !important;
 }
 
 .product.shop-card .shop-card__actions a:focus-visible,
@@ -438,7 +544,7 @@
   }
 
   .product.shop-card .product-highlight {
-    font-size: 14px;
+    font-size: 15px;
   }
 
   .product.shop-card .shop-card__actions {
@@ -447,7 +553,7 @@
 
   .product.shop-card .shop-card__actions a {
     padding: 0 8px !important;
-    font-size: 13.5px !important;
+    font-size: 15px !important;
   }
 }
 
@@ -466,14 +572,14 @@
   }
 
   .product.shop-card .product-highlight {
-    font-size: 14px;
+    font-size: 15px;
   }
 
   .product.shop-card .shop-card__actions a {
     height: 44px !important;
     min-height: 44px !important;
     padding: 0 8px !important;
-    font-size: 13px !important;
+    font-size: 15px !important;
   }
 }
 

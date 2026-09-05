@@ -3100,3 +3100,58 @@ h1 {
     padding-left: 5px;
   }
 }
+
+/* Native selects keep the catalog filters familiar on touch and keyboard. */
+label.filter-select {
+  position: relative;
+  padding: 0;
+}
+
+.filter-select select {
+  appearance: none;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 28px 0 10px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.filter-select .select-arrow {
+  position: absolute;
+  right: 8px;
+  pointer-events: none;
+}
+
+.filter-select select:focus-visible,
+.search-bar:focus-within,
+.empty-state button:focus-visible {
+  outline: 2px solid #6d2751;
+  outline-offset: 2px;
+}
+
+.empty-state button {
+  justify-self: center;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 10px 16px;
+  border: 1px solid #6d2751;
+  border-radius: 8px;
+  color: #4a1535;
+  background: #fff;
+  font-size: 15px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+@media (max-width: 899px) {
+  .hero {
+    min-height: 0;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+}

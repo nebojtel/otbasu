@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#fbf0df">
   <title>ОТБАСЫ | Витрина</title>
+  <meta name="description" content="Товары ОТБАСЫ для дома и семьи: фотографии, видеообзоры и переход к покупке в магазине на Kaspi.">
+  <link rel="canonical" href="https://www.otbasu.shop/vitrine/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="ОТБАСЫ">
+  <meta property="og:title" content="ОТБАСЫ — товары для дома и семьи">
+  <meta property="og:description" content="Рассмотрите товары и выберите нужное для дома. Покупка в магазине ОТБАСЫ на Kaspi.">
+  <meta property="og:url" content="https://www.otbasu.shop/vitrine/">
+  <meta property="og:image" content="https://www.otbasu.shop/assets/otbasy-logo-final.webp">
+  <meta property="og:image:alt" content="Логотип ОТБАСЫ">
   <link rel="stylesheet" href="/vitrine/styles.css">
   <link rel="stylesheet" href="/vitrine/product-cards.css">
   <script type="module" src="/src/vitrine.js"></script>
@@ -38,18 +48,24 @@
 
       <section class="catalog" id="catalog" aria-label="Каталог товаров">
         <div class="catalog-header">
-          <h2 data-catalog-title>Популярные товары</h2>
-          <span data-product-count>Загрузка…</span>
+          <h2 data-catalog-title tabindex="-1">Популярные товары</h2>
+          <span data-product-count role="status" aria-live="polite">Загрузка…</span>
         </div>
 
         <label class="search-bar">
           <span class="search-icon" aria-hidden="true"></span>
-          <input data-search-input type="search" placeholder="Найти товар из обзора..." aria-label="Найти товар из обзора">
+          <input data-search-input type="search" maxlength="120" placeholder="Найти товар из обзора..." aria-label="Найти товар из обзора">
         </label>
 
         <div class="filter-row" aria-label="Фильтры каталога">
-          <button class="filter-select" type="button" data-category-filter>Все категории <span class="select-arrow" aria-hidden="true"></span></button>
-          <button class="filter-select" type="button" data-sort-toggle>По порядку <span class="select-arrow" aria-hidden="true"></span></button>
+          <label class="filter-select">
+            <select data-category-filter aria-label="Категория товара"><option value="all">Все категории</option></select>
+            <span class="select-arrow" aria-hidden="true"></span>
+          </label>
+          <label class="filter-select">
+            <select data-sort-toggle aria-label="Порядок товаров"><option value="manual">По порядку</option><option value="title">По названию</option></select>
+            <span class="select-arrow" aria-hidden="true"></span>
+          </label>
         </div>
 
         <div class="products-list" data-products-list aria-busy="true">
@@ -80,6 +96,15 @@
       </nav>
     </section>
   </main>
+
+  <p class="vitrine-feedback" data-vitrine-feedback role="status" aria-live="polite"></p>
+  <dialog class="share-link-dialog" id="share-link-dialog" aria-labelledby="share-link-title">
+    <form method="dialog">
+      <label id="share-link-title" for="share-link-input">Ссылка на товар</label>
+      <input id="share-link-input" type="url" readonly>
+      <button type="submit">Закрыть</button>
+    </form>
+  </dialog>
 
   <div class="gallery-modal" id="galleryModal" aria-hidden="true">
     <div class="gallery-backdrop" data-gallery-close></div>
