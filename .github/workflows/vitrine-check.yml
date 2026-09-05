@@ -42,5 +42,8 @@ jobs:
       - name: Syntax check
         run: npm run check
 
+      - name: Catalog and database privacy tests
+        run: npm test
+
       - name: Production build
         run: npm run build

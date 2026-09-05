@@ -1,4 +1,6 @@
-import { supabase, isConfigured } from './vitrineClient.js';
+import { supabase, isConfigured, publicProductColumns } from './vitrineClient.js';
+import { matchesProductSearch } from './catalog-search.js';
+import { setupProductSharing, revealSharedProduct } from './product-sharing.js';
 import { getProductHighlight } from './product-highlights.js';
 import { renderProductCardMedia, setupProductCardCarousels } from './product-card-carousel.js';
 import { badgeClasses, escapeHtml, fallbackImage, normalizeExternalUrl, normalizeStatus, normalizeTag, productWord, safeHref, tagLabels } from './shared.js';
@@ -110,7 +112,6 @@ function dbProductToUi(product = {}) {
     kaspiUrl: normalizeExternalUrl(product.kaspi_url || product.kaspiUrl || ''),
     videoUrl: normalizeExternalUrl(product.video_url || product.videoUrl || ''),
     sort: Number.isFinite(Number(product.sort)) ? Number(product.sort) : 100,
-    note: product.note || '',
     updatedAt: imageVersion
   };
 }
@@ -142,8 +143,8 @@ async function loadState() {
   try {
     const [{ data: settings, error: settingsError }, { data: categories, error: categoriesError }, { data: products, error: productsError }] = await Promise.all([
       supabase.from('settings').select('*').eq('id', 1).maybeSingle(),
-      supabase.from('categories').select('*').eq('is_active', true).order('sort', { ascending: true }),
-      supabase.from('products').select('*').eq('status', 'active').order('sort', { ascending: true })
+      supabase.from('categories').select('id,name,sort').eq('is_active', true).order('sort', { ascending: true }),
+      supabase.from('products').select(publicProductColumns).eq('status', 'active').order('sort', { ascending: true })
     ]);
 
     if (settingsError) throw settingsError;
@@ -163,7 +164,9 @@ async function loadState() {
   }
 
   applySettings(state.settings);
+  updateCategoryOptions();
   renderProducts();
+  if (loadStatus === 'ready') revealSharedProduct(els.list);
 }
 
 function applySettings(settings = {}) {
@@ -197,12 +200,28 @@ function visibleProducts() {
   return activeProducts().filter((product) => {
     const tabOk = currentTab === 'all' || product.tag === currentTab;
     const catOk = currentCategory === 'all' || product.category === currentCategory;
-    const searchOk = !query || [product.title, product.category, tagLabels[product.tag]].join(' ').toLowerCase().includes(query);
+    const searchOk = matchesProductSearch(product, query, {
+      highlight: getProductHighlight(product), tagLabel: tagLabels[product.tag] || ''
+    });
     return tabOk && catOk && searchOk;
   }).sort((a, b) => {
     if (sortMode === 'title') return a.title.localeCompare(b.title, 'ru');
     return Number(a.sort || 0) - Number(b.sort || 0);
   });
+}
+
+function renderEmptyState() {
+  if (loadStatus === 'error') {
+    return '<div class="empty-state" role="status"><strong>Не удалось загрузить товары</strong><span>Проверьте подключение к интернету и попробуйте ещё раз.</span><button type="button" data-retry-load>Попробовать снова</button></div>';
+  }
+  const hasFilters = Boolean(els.search?.value.trim()) || currentCategory !== 'all';
+  const title = hasFilters ? 'Ничего не найдено'
+    : currentTab === 'promo' ? 'Скоро здесь появятся акции'
+      : currentTab === 'new' ? 'Новые товары скоро появятся'
+        : currentTab === 'hit' ? 'Здесь появятся хиты магазина' : 'Каталог скоро пополнится';
+  const message = hasFilters ? 'Попробуйте другое название или посмотрите все товары.'
+    : currentTab === 'all' ? 'Мы готовим для вас новые товары. Загляните немного позже.' : 'А пока посмотрите остальные товары магазина.';
+  return `<div class="empty-state" role="status"><strong>${title}</strong><span>${message}</span>${hasFilters || currentTab !== 'all' ? '<button type="button" data-reset-catalog>Показать все товары</button>' : ''}</div>`;
 }
 
 function renderProducts() {
@@ -213,9 +232,7 @@ function renderProducts() {
   const items = visibleProducts();
   els.list.innerHTML = items.length
     ? items.map(renderProductCard).join('')
-    : loadStatus === 'error'
-      ? `<div class="empty-state"><strong>Не удалось загрузить товары</strong><span>Обновите страницу и попробуйте ещё раз.</span></div>`
-      : `<div class="empty-state"><strong>Товаров пока нет</strong><span>Добавьте товар в админке или выберите другую вкладку.</span></div>`;
+    : renderEmptyState();
 
   if (els.counter) els.counter.textContent = `${items.length} ${productWord(items.length)}`;
   if (els.catalogTitle) els.catalogTitle.textContent = currentTab === 'all'
@@ -375,22 +392,40 @@ async function trackEvent(eventType, details = {}) {
   }
 }
 
-function cycleCategory() {
-  const categories = ['all', ...(state.categories || []).map((cat) => cat.name).filter(Boolean)];
-  const index = categories.indexOf(currentCategory);
-  currentCategory = categories[(index + 1) % categories.length] || 'all';
-  if (els.categoryFilter) els.categoryFilter.firstChild.textContent = currentCategory === 'all' ? 'Все категории ' : `${currentCategory} `;
-  renderProducts();
-  trackEvent('filter_change', { category: currentCategory });
+function updateCategoryOptions() {
+  if (!els.categoryFilter) return;
+  const available = new Set(activeProducts().map((product) => product.category));
+  const categories = [...new Set([...(state.categories || []).map((cat) => cat.name), ...available])]
+    .filter((name) => available.has(name));
+  els.categoryFilter.innerHTML = '<option value="all">Все категории</option>'
+    + categories.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+  if (!available.has(currentCategory)) currentCategory = 'all';
+  els.categoryFilter.value = currentCategory;
 }
 
-function toggleSort() {
-  sortMode = sortMode === 'manual' ? 'title' : 'manual';
-  if (els.sortToggle) els.sortToggle.firstChild.textContent = sortMode === 'manual' ? 'По порядку ' : 'По названию ';
+function updateActiveTab() {
+  els.navLinks.forEach((item) => {
+    const active = item.dataset.vitrineFilter === currentTab;
+    item.classList.toggle('active', active);
+    if (active) item.setAttribute('aria-current', 'page');
+    else item.removeAttribute('aria-current');
+  });
+}
+
+function resetCatalog() {
+  currentTab = 'all';
+  currentCategory = 'all';
+  sortMode = 'manual';
+  if (els.search) els.search.value = '';
+  if (els.categoryFilter) els.categoryFilter.value = 'all';
+  if (els.sortToggle) els.sortToggle.value = 'manual';
+  updateActiveTab();
   renderProducts();
+  els.catalogTitle?.focus({ preventScroll: true });
 }
 
 function bindEvents() {
+  setupProductSharing(els.list);
   const screen = document.querySelector('.screen');
   const hero = document.querySelector('.hero');
   const storeHeader = document.querySelector('.kaspi-sticky');
@@ -403,17 +438,24 @@ function bindEvents() {
   }
 
   els.search?.addEventListener('input', renderProducts);
-  els.categoryFilter?.addEventListener('click', cycleCategory);
-  els.sortToggle?.addEventListener('click', toggleSort);
+  els.categoryFilter?.addEventListener('change', () => {
+    currentCategory = els.categoryFilter.value;
+    renderProducts();
+    trackEvent('filter_change');
+  });
+  els.sortToggle?.addEventListener('change', () => {
+    sortMode = els.sortToggle.value === 'title' ? 'title' : 'manual';
+    renderProducts();
+  });
+  els.list?.addEventListener('click', (event) => {
+    if (event.target.closest('[data-reset-catalog]')) resetCatalog();
+    if (event.target.closest('[data-retry-load]') && loadStatus !== 'loading') loadState();
+  });
   els.navLinks.forEach((link) => {
     link.addEventListener('click', (event) => {
       event.preventDefault();
       currentTab = link.dataset.vitrineFilter || 'all';
-      els.navLinks.forEach((item) => {
-        item.classList.toggle('active', item === link);
-        if (item === link) item.setAttribute('aria-current', 'page');
-        else item.removeAttribute('aria-current');
-      });
+      updateActiveTab();
       renderProducts();
       document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       trackEvent('tab_click', { tab: currentTab });
@@ -590,7 +632,6 @@ loadState();
         overflow: hidden;
         transition:
           opacity 180ms ease,
-          visibility 180ms ease,
           background 180ms ease;
         -webkit-tap-highlight-color: transparent;
         contain: layout paint size;
@@ -875,6 +916,7 @@ loadState();
   }
 
   function openViewer(product, images, opener) {
+    if (document.getElementById(VIEWER_ID)) return;
     injectStyles();
 
     const safeImages = uniqImages(images);
@@ -884,8 +926,6 @@ loadState();
     const initialIndex = Number.isFinite(requestedIndex)
       ? Math.max(0, Math.min(safeImages.length - 1, requestedIndex))
       : 0;
-
-    document.getElementById(VIEWER_ID)?.remove();
 
     const oldModal = document.getElementById('galleryModal');
     if (oldModal) oldModal.setAttribute('aria-hidden', 'true');
@@ -929,8 +969,23 @@ loadState();
       </div>
     `;
 
+    const previousFocus = opener?.querySelector?.('[data-card-slide][aria-current="true"]') || document.activeElement;
+    const backgroundNodes = Array.from(document.body.children)
+      .filter((node) => node instanceof HTMLElement && !node.matches('script, style'))
+      .map((node) => ({ node, inert: node.inert }));
+    backgroundNodes.forEach(({ node }) => { node.inert = true; });
     document.body.appendChild(viewer);
     document.body.classList.add('otbasu-photo-open');
+
+    const historyToken = `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    let historyAdded = false;
+    let closing = false;
+    try {
+      history.pushState({ ...history.state, otbasuPhotoViewer: historyToken }, '');
+      historyAdded = true;
+    } catch (_) {
+      // Embedded browsers may disallow history updates; closing still works.
+    }
 
     const track = viewer.querySelector('[data-otbasu-photo-track]');
     const bars = Array.from(viewer.querySelectorAll('[data-otbasu-photo-dot]'));
@@ -1154,8 +1209,13 @@ loadState();
       window.setTimeout(updateBars, behavior === 'smooth' ? 220 : 0);
     };
 
-    const closeViewer = (directionY = 1) => {
-      if (!viewer.isConnected) return;
+    const closeViewer = (directionY = 1, fromHistory = false) => {
+      if (!viewer.isConnected || closing) return;
+      closing = true;
+      window.removeEventListener('keydown', keyHandler);
+      window.removeEventListener('popstate', handleHistoryChange);
+      if (raf) cancelAnimationFrame(raf);
+      if (!fromHistory && historyAdded && history.state?.otbasuPhotoViewer === historyToken) history.back();
 
       if (tapTimer) {
         window.clearTimeout(tapTimer);
@@ -1173,6 +1233,10 @@ loadState();
       window.setTimeout(() => {
         viewer.remove();
         document.body.classList.remove('otbasu-photo-open');
+        backgroundNodes.forEach(({ node, inert }) => { node.inert = inert; });
+        if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+          previousFocus.focus({ preventScroll: true });
+        }
       }, 190);
     };
 
@@ -1496,6 +1560,19 @@ loadState();
         return;
       }
 
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.key === 'Tab') {
+        const targets = Array.from(viewer.querySelectorAll('button:not(:disabled), [tabindex="0"]'))
+          .filter((node) => node.getClientRects().length > 0);
+        const first = targets[0];
+        const last = targets[targets.length - 1];
+        if (!viewer.contains(document.activeElement) || (event.shiftKey && document.activeElement === first)
+          || (!event.shiftKey && document.activeElement === last)) {
+          event.preventDefault();
+          (event.shiftKey ? last : first)?.focus();
+        }
+      }
+      if (['Escape', 'ArrowLeft', 'ArrowRight', '+', '=', '-', '_', '0'].includes(event.key)) event.preventDefault();
       if (event.key === 'Escape') closeViewer(1);
       if (event.key === 'ArrowLeft') scrollToIndex(activeIndex - 1);
       if (event.key === 'ArrowRight') scrollToIndex(activeIndex + 1);
@@ -1504,10 +1581,15 @@ loadState();
       if (event.key === '0') resetZoom();
     };
 
+    const handleHistoryChange = () => {
+      if (history.state?.otbasuPhotoViewer !== historyToken) closeViewer(1, true);
+    };
     window.addEventListener('keydown', keyHandler);
+    window.addEventListener('popstate', handleHistoryChange);
 
     requestAnimationFrame(() => {
       viewer.classList.add('is-open');
+      viewer.querySelector('button[data-otbasu-photo-close]')?.focus({ preventScroll: true });
       scrollToIndex(initialIndex, 'auto');
 
       const firstImage = getActiveImage();
