@@ -46,25 +46,41 @@
 }
 
 .product.shop-card .shop-card__share {
+  appearance: none;
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 6;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
+  margin: 0;
   padding: 0;
-  border: 1px solid rgba(63, 34, 50, .15);
+  border: 1px solid #d6b474;
   border-radius: 8px;
-  background: rgba(255, 255, 255, .95);
-  color: #432332;
+  background: linear-gradient(155deg, #6b2946, #3d172b);
+  color: #ffdf9e;
+  box-shadow: inset 0 0 0 2px rgba(255, 223, 158, .12), 0 3px 10px rgba(43, 17, 31, .25);
+  transition: box-shadow 160ms ease, border-color 160ms ease, transform 160ms ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   cursor: pointer;
 }
 
+.product.shop-card .shop-card__share:active:not(:disabled) {
+  transform: scale(.96);
+  box-shadow: inset 0 0 0 2px rgba(255, 223, 158, .2), 0 1px 4px rgba(43, 17, 31, .2);
+}
+
+.product.shop-card .shop-card__share:disabled {
+  opacity: .7;
+  cursor: wait;
+}
+
 .shop-card__share-icon {
-  width: 19px;
-  height: 19px;
+  width: 22px;
+  height: 22px;
   background: currentColor;
   mask: url('/assets/icon-share.svg') center / contain no-repeat;
   -webkit-mask: url('/assets/icon-share.svg') center / contain no-repeat;
@@ -76,12 +92,14 @@
   right: 0;
   visibility: hidden;
   padding: 5px 8px;
-  border-radius: 4px;
-  background: #432332;
-  color: #fff;
+  border: 1px solid #d6b474;
+  border-radius: 6px;
+  background: #3d172b;
+  color: #ffedc9;
   font-size: 13px;
   line-height: 1.4;
   white-space: nowrap;
+  pointer-events: none;
 }
 
 .shop-card__share:focus-visible .shop-card__share-tooltip {
@@ -89,12 +107,22 @@
 }
 
 @media (hover: hover) {
+  .product.shop-card .shop-card__share:hover:not(:disabled) {
+    border-color: #ffdf9e;
+    box-shadow: inset 0 0 0 2px rgba(255, 223, 158, .24), 0 4px 12px rgba(43, 17, 31, .32);
+  }
+
   .shop-card__share:hover .shop-card__share-tooltip {
     visibility: visible;
   }
 }
 
-.product.shop-card .shop-card__share:focus-visible,
+.product.shop-card .shop-card__share:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px #432332;
+}
+
 .product.shop-card:focus-visible {
   outline: 3px solid #6d2751;
   outline-offset: -3px;
@@ -584,6 +612,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .product.shop-card .shop-card__share,
   .product.shop-card .shop-card__actions a,
   .product.shop-card .shop-card__image,
   .product.shop-card .shop-card__arrow,
