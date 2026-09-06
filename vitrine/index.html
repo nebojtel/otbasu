@@ -99,11 +99,37 @@
 
   <p class="vitrine-feedback" data-vitrine-feedback role="status" aria-live="polite"></p>
   <dialog class="share-link-dialog" id="share-link-dialog" aria-labelledby="share-link-title">
-    <form method="dialog">
-      <label id="share-link-title" for="share-link-input">Ссылка на товар</label>
-      <input id="share-link-input" type="url" readonly>
-      <button type="submit">Закрыть</button>
-    </form>
+    <header class="share-dialog__header">
+      <h2 id="share-link-title">Поделиться товаром</h2>
+      <button class="share-dialog__close" type="button" data-share-close aria-label="Закрыть меню отправки">
+        <span class="share-option__icon share-icon--close" aria-hidden="true"></span>
+      </button>
+    </header>
+    <div class="share-dialog__body">
+      <p class="share-dialog__product" data-share-title></p>
+      <div class="share-dialog__options">
+        <a class="share-option" data-share-target="telegram" target="_blank" rel="noopener noreferrer">
+          <span class="share-option__icon share-icon--telegram" aria-hidden="true"></span><span>Telegram</span>
+        </a>
+        <a class="share-option" data-share-target="whatsapp" target="_blank" rel="noopener noreferrer">
+          <span class="share-option__icon share-icon--whatsapp" aria-hidden="true"></span><span>WhatsApp</span>
+        </a>
+        <a class="share-option" data-share-target="email">
+          <span class="share-option__icon share-icon--email" aria-hidden="true"></span><span>Электронная почта</span>
+        </a>
+        <button class="share-option" type="button" data-share-native hidden>
+          <span class="share-option__icon share-icon--native" aria-hidden="true"></span><span>Другие приложения</span>
+        </button>
+        <button class="share-option" type="button" data-share-copy>
+          <span class="share-option__icon share-icon--copy" aria-hidden="true"></span><span>Скопировать ссылку</span>
+        </button>
+      </div>
+      <p class="share-dialog__status" data-share-status role="status" aria-live="polite"></p>
+      <div class="share-dialog__manual" data-share-manual hidden>
+        <label for="share-link-input">Ссылка на товар</label>
+        <input id="share-link-input" type="url" readonly spellcheck="false" autocapitalize="off">
+      </div>
+    </div>
   </dialog>
 
   <div class="gallery-modal" id="galleryModal" aria-hidden="true">
