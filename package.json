@@ -10,9 +10,10 @@
     "dev": "vite --host 127.0.0.1 --port 5173",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
-    "check": "node --check api/admin/create-user.js && node --check src/admin.js && node --check src/vitrine.js && node --check src/product-card-carousel.js && node --check src/vitrineClient.js && node --check src/catalog-search.js && node --check src/product-sharing.js",
+    "check": "node --check api/admin/create-user.js && node --check src/admin.js && node --check src/vitrine.js && node --check src/product-card-carousel.js && node --check src/photo-tap-guard.js && node --check src/vitrineClient.js && node --check src/catalog-search.js && node --check src/product-sharing.js",
     "test": "node --test tests/*.test.js",
     "test:sharing": "node tests/browser/product-sharing.cjs",
+    "test:photo-taps": "node tests/browser/photo-tap-guard.cjs",
     "audit:security": "npm audit --audit-level=high"
   },
   "dependencies": {
