@@ -3,6 +3,7 @@ import { matchesProductSearch } from './catalog-search.js';
 import { setupProductSharing, revealSharedProduct } from './product-sharing.js';
 import { getProductHighlight } from './product-highlights.js';
 import { renderProductCardMedia, setupProductCardCarousels } from './product-card-carousel.js';
+import { setupPhotoTapGuard } from './photo-tap-guard.js';
 import { badgeClasses, escapeHtml, fallbackImage, normalizeExternalUrl, normalizeStatus, normalizeTag, productWord, safeHref, tagLabels } from './shared.js';
 
 const tabTitles = {
@@ -1609,6 +1610,8 @@ loadState();
     });
   }
 
+  const shouldSuppressPhotoTap = setupPhotoTapGuard();
+
   document.addEventListener(
     'click',
     (event) => {
@@ -1631,7 +1634,14 @@ loadState();
 
       if (cardCarousel) {
         const suppressUntil = Number(cardCarousel.dataset.cardSuppressOpenUntil || 0);
-        if (Date.now() < suppressUntil || cardCarousel.dataset.cardInlineZoomed === 'true') return;
+        const keyboardActivation = event.detail === 0 && !event.pointerType;
+        if (shouldSuppressPhotoTap(event, cardCarousel)
+          || (!keyboardActivation && Date.now() < suppressUntil)
+          || cardCarousel.dataset.cardInlineZoomed === 'true') {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return;
+        }
       }
 
       const product = getProductFromClick(opener);
