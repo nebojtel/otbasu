@@ -17,8 +17,8 @@
     "audit:security": "npm audit --audit-level=high"
   },
   "dependencies": {
-    "@supabase/postgrest-js": "2.114.0",
-    "@supabase/supabase-js": "2.114.0",
+    "@supabase/postgrest-js": "2.115.0",
+    "@supabase/supabase-js": "2.115.0",
     "vite": "8.2.2"
   },
   "devDependencies": {
