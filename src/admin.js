@@ -24,6 +24,42 @@ const analyticsTagLabels = {
   none: 'Без метки'
 };
 
+const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
+let turnstileWidgetId = null;
+let captchaToken = '';
+
+function resetCaptcha() {
+  captchaToken = '';
+  if (turnstileWidgetId !== null && window.turnstile) {
+    window.turnstile.reset(turnstileWidgetId);
+  }
+}
+
+async function setupCaptcha() {
+  const container = document.getElementById('loginCaptcha');
+  if (!container || !turnstileSiteKey) return;
+  container.hidden = false;
+  try {
+    await new Promise((resolve, reject) => {
+      if (window.turnstile) return resolve();
+      const script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.async = true;
+      script.onload = resolve;
+      script.onerror = () => reject(new Error('Не удалось загрузить проверку Cloudflare.'));
+      document.head.appendChild(script);
+    });
+    turnstileWidgetId = window.turnstile.render(container, {
+      sitekey: turnstileSiteKey,
+      callback: (token) => { captchaToken = token; },
+      'expired-callback': () => { captchaToken = ''; },
+      'error-callback': () => { captchaToken = ''; }
+    });
+  } catch (error) {
+    setLoginMessage(error.message, true);
+  }
+}
+
 let state = { settings: {}, categories: [], products: [] };
 let analyticsEvents = [];
 let users = [];
@@ -246,9 +282,16 @@ async function login(event) {
   const email = String(form.get('email') || '').trim();
   const password = String(form.get('password') || '');
 
+  if (turnstileSiteKey && !captchaToken) {
+    setLoginMessage('Пройди проверку безопасности перед входом.', true);
+    return;
+  }
+
   setLoginMessage('Проверяю доступ…');
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const options = turnstileSiteKey ? { captchaToken } : undefined;
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password, options });
+  if (turnstileSiteKey) resetCaptcha();
 
   if (error) {
     setLoginMessage(`Ошибка входа: ${error.message}`, true);
@@ -2094,4 +2137,5 @@ function injectAdminUiFixes() {
 
 bindEvents();
 injectAdminUiFixes();
+setupCaptcha();
 requireSession();
