@@ -4,8 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#fbf0df">
-    <title>ОТБАСЫ | Админка</title>
+  <title>ОТБАСЫ | Админка</title>
   <link rel="stylesheet" href="/admin/admin.css">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <script type="module" src="/src/admin.js"></script>
 </head>
 <body>
@@ -18,7 +19,16 @@
       <form class="form-stack" id="loginForm">
         <label>Email<input name="email" type="email" autocomplete="username" required></label>
         <label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>
-        <button class="primary-button" type="submit">Войти в админку</button>
+        <div class="turnstile-wrap">
+          <div
+            class="cf-turnstile"
+            data-sitekey="%VITE_TURNSTILE_SITE_KEY%"
+            data-action="admin_login"
+            data-theme="light"
+            data-language="ru"
+          ></div>
+        </div>
+        <button class="primary-button" id="loginButton" type="submit">Войти в админку</button>
       </form>
     </div>
   </section>

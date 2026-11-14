@@ -10,6 +10,7 @@ import {
   uid
 } from './shared.js';
 const MAX_PRODUCT_PHOTOS = 5;
+const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
 const roleLabels = {
   admin: 'Администратор',
@@ -41,6 +42,7 @@ const els = {
   loginScreen: document.getElementById('loginScreen'),
   adminShell: document.getElementById('adminShell'),
   loginForm: document.getElementById('loginForm'),
+  loginButton: document.getElementById('loginButton'),
   logoutButton: document.getElementById('logoutButton'),
   navList: document.getElementById('navList'),
   pageTitle: document.getElementById('pageTitle'),
@@ -242,29 +244,65 @@ async function login(event) {
     return;
   }
 
+  if (!turnstileSiteKey) {
+    setLoginMessage('Не настроен публичный ключ Cloudflare Turnstile.', true);
+    return;
+  }
+
   const form = new FormData(els.loginForm);
   const email = String(form.get('email') || '').trim();
   const password = String(form.get('password') || '');
+  const turnstileToken = String(form.get('cf-turnstile-response') || '');
+
+  if (!turnstileToken) {
+    setLoginMessage('Подтверди, что ты не робот.', true);
+    return;
+  }
 
   setLoginMessage('Проверяю доступ…');
+  if (els.loginButton) els.loginButton.disabled = true;
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  try {
+    const response = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email, password, turnstileToken })
+    });
 
-  if (error) {
+    const body = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(body.error || `HTTP ${response.status}`);
+    }
+
+    const { data, error } = await supabase.auth.setSession({
+      access_token: body.session?.access_token,
+      refresh_token: body.session?.refresh_token
+    });
+
+    if (error || !data?.user) {
+      throw new Error('Не удалось создать защищённую сессию.');
+    }
+
+    currentUser = data.user;
+    await loadProfile();
+
+    if (!canManageContent()) {
+      await supabase.auth.signOut();
+      setLoginMessage('У этого пользователя нет роли администратора или контент-менеджера.', true);
+      window.turnstile?.reset();
+      return;
+    }
+
+    openAdmin();
+  } catch (error) {
     setLoginMessage(`Ошибка входа: ${error.message}`, true);
-    return;
+    window.turnstile?.reset();
+  } finally {
+    if (els.loginButton) els.loginButton.disabled = false;
   }
-
-  currentUser = data.user;
-  await loadProfile();
-
-  if (!canManageContent()) {
-    await supabase.auth.signOut();
-    setLoginMessage('У этого пользователя нет роли администратора или контент-менеджера.', true);
-    return;
-  }
-
-  openAdmin();
 }
 
 async function logout() {

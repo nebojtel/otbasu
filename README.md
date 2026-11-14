@@ -48,12 +48,17 @@ supabase/schema.sql
 ```env
 VITE_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
 VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+VITE_TURNSTILE_SITE_KEY=YOUR_TURNSTILE_SITE_KEY
 SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
 SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
+TURNSTILE_SECRET_KEY=YOUR_TURNSTILE_SECRET_KEY
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` используется только на серверной Vercel API-функции и не попадает в браузер.
+`TURNSTILE_SECRET_KEY` используется только серверной функцией входа. Не добавляй к нему префикс `VITE_`.
+
+Для production-виджета Cloudflare Turnstile укажи hostname `otbasu.vercel.app`, режим `Managed` и action `admin_login`.
 
 ## Локальный запуск
 
