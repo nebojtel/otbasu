@@ -10,6 +10,7 @@ import {
   uid
 } from './shared.js';
 const MAX_PRODUCT_PHOTOS = 5;
+const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
 const roleLabels = {
   admin: 'Администратор',
@@ -35,12 +36,14 @@ let imageDraft = [];
 let isSaving = false;
 let draggedProductId = null;
 let draggedImageId = null;
+let turnstileWidgetId = null;
 let photoHelpText = 'До 5 фото. ★ — обложка. Перетащи карточку за нижнюю ручку ⋮⋮, чтобы изменить порядок.';
 
 const els = {
   loginScreen: document.getElementById('loginScreen'),
   adminShell: document.getElementById('adminShell'),
   loginForm: document.getElementById('loginForm'),
+  loginButton: document.getElementById('loginButton'),
   logoutButton: document.getElementById('logoutButton'),
   navList: document.getElementById('navList'),
   pageTitle: document.getElementById('pageTitle'),
@@ -103,6 +106,33 @@ function setLoginMessage(message, isError = false) {
   box.textContent = message;
   box.classList.toggle('error', Boolean(isError));
   box.classList.toggle('ok', !isError);
+}
+
+function initializeTurnstile() {
+  if (!turnstileSiteKey) return;
+
+  const wrap = document.getElementById('turnstileWrap');
+  const widget = document.getElementById('turnstileWidget');
+  if (!wrap || !widget) return;
+
+  wrap.hidden = false;
+  let attempts = 0;
+  const renderWhenReady = () => {
+    if (window.turnstile?.render) {
+      turnstileWidgetId = window.turnstile.render(widget, {
+        sitekey: turnstileSiteKey,
+        action: 'admin_login',
+        theme: 'light',
+        language: 'ru'
+      });
+      return;
+    }
+
+    attempts += 1;
+    if (attempts < 100) window.setTimeout(renderWhenReady, 100);
+  };
+
+  renderWhenReady();
 }
 
 function formatNumber(value) {
@@ -245,26 +275,64 @@ async function login(event) {
   const form = new FormData(els.loginForm);
   const email = String(form.get('email') || '').trim();
   const password = String(form.get('password') || '');
+  const turnstileToken = String(form.get('cf-turnstile-response') || '');
+
+  if (turnstileSiteKey && !turnstileToken) {
+    setLoginMessage('Подтверди, что ты не робот.', true);
+    return;
+  }
 
   setLoginMessage('Проверяю доступ…');
+  if (els.loginButton) els.loginButton.disabled = true;
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  try {
+    let data;
+    let error;
 
-  if (error) {
+    if (turnstileSiteKey) {
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password, turnstileToken })
+      });
+
+      const body = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(body.error || `HTTP ${response.status}`);
+      }
+
+      ({ data, error } = await supabase.auth.setSession({
+        access_token: body.session?.access_token,
+        refresh_token: body.session?.refresh_token
+      }));
+    } else {
+      ({ data, error } = await supabase.auth.signInWithPassword({ email, password }));
+    }
+
+    if (error || !data?.user) {
+      throw new Error('Не удалось создать защищённую сессию.');
+    }
+
+    currentUser = data.user;
+    await loadProfile();
+
+    if (!canManageContent()) {
+      await supabase.auth.signOut();
+      setLoginMessage('У этого пользователя нет роли администратора или контент-менеджера.', true);
+      if (turnstileWidgetId !== null) window.turnstile?.reset(turnstileWidgetId);
+      return;
+    }
+
+    openAdmin();
+  } catch (error) {
     setLoginMessage(`Ошибка входа: ${error.message}`, true);
-    return;
+    if (turnstileWidgetId !== null) window.turnstile?.reset(turnstileWidgetId);
+  } finally {
+    if (els.loginButton) els.loginButton.disabled = false;
   }
-
-  currentUser = data.user;
-  await loadProfile();
-
-  if (!canManageContent()) {
-    await supabase.auth.signOut();
-    setLoginMessage('У этого пользователя нет роли администратора или контент-менеджера.', true);
-    return;
-  }
-
-  openAdmin();
 }
 
 async function logout() {
@@ -2094,4 +2162,5 @@ function injectAdminUiFixes() {
 
 bindEvents();
 injectAdminUiFixes();
+initializeTurnstile();
 requireSession();
