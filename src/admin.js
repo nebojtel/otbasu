@@ -43,6 +43,8 @@ const els = {
   loginScreen: document.getElementById('loginScreen'),
   adminShell: document.getElementById('adminShell'),
   loginForm: document.getElementById('loginForm'),
+  adminPassword: document.getElementById('adminPassword'),
+  passwordToggle: document.getElementById('passwordToggle'),
   loginButton: document.getElementById('loginButton'),
   logoutButton: document.getElementById('logoutButton'),
   navList: document.getElementById('navList'),
@@ -133,6 +135,19 @@ function initializeTurnstile() {
   };
 
   renderWhenReady();
+}
+
+function togglePasswordVisibility() {
+  if (!els.adminPassword || !els.passwordToggle) return;
+
+  const willShow = els.adminPassword.type === 'password';
+  els.adminPassword.type = willShow ? 'text' : 'password';
+  els.passwordToggle.setAttribute('aria-pressed', String(willShow));
+
+  const label = willShow ? 'Скрыть пароль' : 'Показать пароль';
+  els.passwordToggle.setAttribute('aria-label', label);
+  els.passwordToggle.title = label;
+  els.adminPassword.focus({ preventScroll: true });
 }
 
 function formatNumber(value) {
@@ -1502,6 +1517,7 @@ async function createUser(event) {
 
 function bindEvents() {
   els.loginForm?.addEventListener('submit', login);
+  els.passwordToggle?.addEventListener('click', togglePasswordVisibility);
   els.logoutButton?.addEventListener('click', logout);
 
   els.navList?.addEventListener('click', (event) => {
