@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { validateTurnstileToken } from '../api/admin/login.js';
+import {
+  isTurnstileProtectionEnabled,
+  validateTurnstileToken
+} from '../api/admin/login.js';
+
+test('Turnstile protection activates only when both deployment keys exist', () => {
+  assert.equal(isTurnstileProtectionEnabled({ secret: 'secret', siteKey: 'site-key' }), true);
+  assert.equal(isTurnstileProtectionEnabled({ secret: 'secret', siteKey: '' }), false);
+  assert.equal(isTurnstileProtectionEnabled({ secret: '', siteKey: 'site-key' }), false);
+});
 
 test('Turnstile validation rejects missing tokens before calling Cloudflare', async () => {
   let called = false;

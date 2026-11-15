@@ -71,6 +71,10 @@ export async function validateTurnstileToken({
   }
 }
 
+export function isTurnstileProtectionEnabled({ secret, siteKey }) {
+  return Boolean(secret && siteKey);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -80,8 +84,13 @@ export default async function handler(req, res) {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+  const turnstileSiteKey = process.env.VITE_TURNSTILE_SITE_KEY;
+  const turnstileEnabled = isTurnstileProtectionEnabled({
+    secret: turnstileSecret,
+    siteKey: turnstileSiteKey
+  });
 
-  if (!supabaseUrl || !anonKey || !turnstileSecret) {
+  if (!supabaseUrl || !anonKey) {
     return send(res, 503, { error: 'Сервер входа ещё не настроен.' });
   }
 
@@ -90,18 +99,20 @@ export default async function handler(req, res) {
   const password = String(body.password || '');
   const turnstileToken = String(body.turnstileToken || '');
 
-  if (!email || !password || !turnstileToken) {
+  if (!email || !password || (turnstileEnabled && !turnstileToken)) {
     return send(res, 400, { error: 'Заполни форму и пройди проверку безопасности.' });
   }
 
-  const verification = await validateTurnstileToken({
-    token: turnstileToken,
-    secret: turnstileSecret,
-    remoteIp: clientIp(req)
-  });
+  if (turnstileEnabled) {
+    const verification = await validateTurnstileToken({
+      token: turnstileToken,
+      secret: turnstileSecret,
+      remoteIp: clientIp(req)
+    });
 
-  if (!verification.success) {
-    return send(res, 403, { error: 'Проверка безопасности не пройдена. Попробуй ещё раз.' });
+    if (!verification.success) {
+      return send(res, 403, { error: 'Проверка безопасности не пройдена. Попробуй ещё раз.' });
+    }
   }
 
   const authClient = createClient(supabaseUrl, anonKey, {

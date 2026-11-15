@@ -36,6 +36,7 @@ let imageDraft = [];
 let isSaving = false;
 let draggedProductId = null;
 let draggedImageId = null;
+let turnstileWidgetId = null;
 let photoHelpText = 'До 5 фото. ★ — обложка. Перетащи карточку за нижнюю ручку ⋮⋮, чтобы изменить порядок.';
 
 const els = {
@@ -105,6 +106,33 @@ function setLoginMessage(message, isError = false) {
   box.textContent = message;
   box.classList.toggle('error', Boolean(isError));
   box.classList.toggle('ok', !isError);
+}
+
+function initializeTurnstile() {
+  if (!turnstileSiteKey) return;
+
+  const wrap = document.getElementById('turnstileWrap');
+  const widget = document.getElementById('turnstileWidget');
+  if (!wrap || !widget) return;
+
+  wrap.hidden = false;
+  let attempts = 0;
+  const renderWhenReady = () => {
+    if (window.turnstile?.render) {
+      turnstileWidgetId = window.turnstile.render(widget, {
+        sitekey: turnstileSiteKey,
+        action: 'admin_login',
+        theme: 'light',
+        language: 'ru'
+      });
+      return;
+    }
+
+    attempts += 1;
+    if (attempts < 100) window.setTimeout(renderWhenReady, 100);
+  };
+
+  renderWhenReady();
 }
 
 function formatNumber(value) {
@@ -244,17 +272,12 @@ async function login(event) {
     return;
   }
 
-  if (!turnstileSiteKey) {
-    setLoginMessage('Не настроен публичный ключ Cloudflare Turnstile.', true);
-    return;
-  }
-
   const form = new FormData(els.loginForm);
   const email = String(form.get('email') || '').trim();
   const password = String(form.get('password') || '');
   const turnstileToken = String(form.get('cf-turnstile-response') || '');
 
-  if (!turnstileToken) {
+  if (turnstileSiteKey && !turnstileToken) {
     setLoginMessage('Подтверди, что ты не робот.', true);
     return;
   }
@@ -263,24 +286,31 @@ async function login(event) {
   if (els.loginButton) els.loginButton.disabled = true;
 
   try {
-    const response = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ email, password, turnstileToken })
-    });
+    let data;
+    let error;
 
-    const body = await response.json().catch(() => ({}));
+    if (turnstileSiteKey) {
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password, turnstileToken })
+      });
 
-    if (!response.ok) {
-      throw new Error(body.error || `HTTP ${response.status}`);
+      const body = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(body.error || `HTTP ${response.status}`);
+      }
+
+      ({ data, error } = await supabase.auth.setSession({
+        access_token: body.session?.access_token,
+        refresh_token: body.session?.refresh_token
+      }));
+    } else {
+      ({ data, error } = await supabase.auth.signInWithPassword({ email, password }));
     }
-
-    const { data, error } = await supabase.auth.setSession({
-      access_token: body.session?.access_token,
-      refresh_token: body.session?.refresh_token
-    });
 
     if (error || !data?.user) {
       throw new Error('Не удалось создать защищённую сессию.');
@@ -292,14 +322,14 @@ async function login(event) {
     if (!canManageContent()) {
       await supabase.auth.signOut();
       setLoginMessage('У этого пользователя нет роли администратора или контент-менеджера.', true);
-      window.turnstile?.reset();
+      if (turnstileWidgetId !== null) window.turnstile?.reset(turnstileWidgetId);
       return;
     }
 
     openAdmin();
   } catch (error) {
     setLoginMessage(`Ошибка входа: ${error.message}`, true);
-    window.turnstile?.reset();
+    if (turnstileWidgetId !== null) window.turnstile?.reset(turnstileWidgetId);
   } finally {
     if (els.loginButton) els.loginButton.disabled = false;
   }
@@ -2132,4 +2162,5 @@ function injectAdminUiFixes() {
 
 bindEvents();
 injectAdminUiFixes();
+initializeTurnstile();
 requireSession();
