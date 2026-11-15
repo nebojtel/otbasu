@@ -18,7 +18,27 @@
       <p class="muted">Вход через Supabase Auth. Доступ только для ролей <b>Администратор</b> и <b>Контент-менеджер</b>.</p>
       <form class="form-stack" id="loginForm">
         <label>Email<input name="email" type="email" autocomplete="username" required></label>
-        <label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>
+        <div class="password-control">
+          <label for="adminPassword">Пароль</label>
+          <span class="password-field">
+            <input id="adminPassword" name="password" type="password" autocomplete="current-password" required>
+            <button
+              class="password-toggle"
+              id="passwordToggle"
+              type="button"
+              aria-label="Показать пароль"
+              aria-controls="adminPassword"
+              aria-pressed="false"
+              title="Показать пароль"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2.6 12s3.4-6 9.4-6 9.4 6 9.4 6-3.4 6-9.4 6-9.4-6-9.4-6Z"></path>
+                <circle cx="12" cy="12" r="2.6"></circle>
+                <path class="password-toggle-slash" d="m4 4 16 16"></path>
+              </svg>
+            </button>
+          </span>
+        </div>
         <div class="turnstile-wrap" id="turnstileWrap" hidden>
           <div id="turnstileWidget"></div>
         </div>

@@ -141,6 +141,61 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 4px rgba(199, 138, 50, .14);
 }
 
+.password-control {
+  display: grid;
+  gap: 7px;
+}
+.password-field {
+  position: relative;
+  display: block;
+}
+.password-field input {
+  padding-right: 54px;
+}
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+  background: transparent;
+  color: rgba(83, 32, 65, .62);
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+.password-toggle:hover {
+  background: rgba(199, 138, 50, .12);
+  color: var(--ink);
+}
+.password-toggle:focus-visible {
+  outline: 3px solid rgba(199, 138, 50, .3);
+  outline-offset: 1px;
+}
+.password-toggle:active {
+  transform: translateY(-50%) scale(.94);
+}
+.password-toggle svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.password-toggle-slash {
+  display: none;
+}
+.password-toggle[aria-pressed="true"] .password-toggle-slash {
+  display: block;
+}
+
 .primary-button,
 .ghost-button,
 .icon-button {
